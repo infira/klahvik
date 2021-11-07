@@ -7,14 +7,13 @@ use Symfony\Component\Process\Process;
 use Infira\Utils\Dir;
 use Infira\Klahvik\console\Command;
 
-class Server
+class Server extends MachineInstance
 {
 	private ?string $klahvikPath;
 	private ?string $tmpPath;
 	private string  $user;
 	private string  $host;
 	private ?int    $port;
-	private Command $cmd;
 	
 	public function __construct(Command &$cmd, string $user, string $host, int $port = null)
 	{
@@ -22,6 +21,7 @@ class Server
 		$this->user = $user;
 		$this->host = $host;
 		$this->port = $port;
+		parent::__construct($this->host, $cmd);
 	}
 	
 	public function setKlahvikPath(string $klahvikPath): void
@@ -49,13 +49,14 @@ class Server
 		return Ssh::create($this->user, $this->host, $this->port);
 	}
 	
-	public function execute($command, callable $outputCallback = null): Process
+	public function execute($command, callable $outputCallback = null, string $msg = null): Process
 	{
 		$ssh = $this->ssh();
 		if ($outputCallback)
 		{
 			$ssh->onOutput(fn($type, $line) => $outputCallback($line));
 		}
+		!$msg ?: $this->say($msg);
 		
 		return $ssh->execute($command);
 	}
@@ -64,23 +65,25 @@ class Server
 	{
 		$arguments = $arguments ?: " $arguments";
 		$bashPath  = $this->klahvikPath('bash');
-		
 		$this->execute([
 			"cd $bashPath",
 			"bash $script $arguments",
-		], fn($line) => $this->say($line));
+		], function ($line)
+		{
+			if (str_contains($line, 'error'))
+			{
+				$this->cmd->output->error($line);
+				exit;
+			}
+			$this->say($line);
+		});
 	}
 	
-	public function rsync(string $src, string $destination)
+	/**
+	 * @return string - returns user@host
+	 */
+	public function getUserHost(): string
 	{
-		$process = Process::fromShellCommandline("rsync -av --progress --del $this->user@$this->host:$src $destination");
-		$process->run(fn($type, $line) => $this->say($line));
+		return "$this->user@$this->host";
 	}
-	
-	//region helpers
-	private function say(string $msg)
-	{
-		$this->cmd->say($msg, 'remote');
-	}
-	//endregion
 }

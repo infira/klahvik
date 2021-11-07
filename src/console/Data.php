@@ -28,7 +28,7 @@ class Data extends Command
 			{
 				$this->error('sync source and destionation undefined');
 			}
-			$this->remote->rsync($this->opt('syncSrc'), $this->opt('syncDest'));
+			$this->local->rsync($this->remote->getUserHost(), $this->opt('syncSrc'), $this->opt('syncDest'));
 		}
 	}
 }

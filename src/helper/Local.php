@@ -4,13 +4,11 @@ namespace Infira\Klahvik\helper;
 
 use Infira\Klahvik\console\Command;
 
-class Local
+class Local extends MachineInstance
 {
-	private Command $cmd;
-	
 	public function __construct(Command &$cmd)
 	{
-		$this->cmd = &$cmd;
+		parent::__construct('localhost', $cmd);
 	}
 	
 	public function tmp(string $path = ''): string

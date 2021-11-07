@@ -4,6 +4,7 @@
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Infira\Error\Handler;
+use Symfony\Component\Console\Input\ArgvInput;
 
 if (file_exists(__DIR__ . '/../../../autoload.php'))
 {
@@ -35,7 +36,8 @@ try
 	$app->add(new \Infira\Klahvik\console\gws\Db);
 	$app->add(new \Infira\Klahvik\console\gws\Data);
 	$app->setCatchExceptions(false);
-	$app->run();
+	$input = new ArgvInput();
+	$app->run($input, new \Infira\Klahvik\helper\ConsoleOutput($input));
 }
 catch (\Infira\Error\Error $e)
 {

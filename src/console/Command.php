@@ -4,22 +4,22 @@ namespace Infira\Klahvik\console;
 
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Infira\Klahvik\helper\Server;
 use Infira\Klahvik\helper\Local;
 use Symfony\Component\Console\Helper\ProgressBar;
-use Infira\Klahvik\helper\SymfonyStyle;
 use Infira\Utils\Dir;
 use Infira\Klahvik\helper\DotConfig;
+use Infira\Klahvik\helper\ConsoleOutput;
+use Symfony\Component\Process\Process;
 
 class Command extends \Symfony\Component\Console\Command\Command
 {
-	protected OutputInterface $output;
-	protected InputInterface  $input;
-	protected Server          $remote;
-	protected Server          $vagrant;
-	protected Local           $local;
-	public ProgressBar        $progress;
+	public ConsoleOutput     $output;
+	protected InputInterface $input;
+	protected Server         $remote;
+	protected Server         $vagrant;
+	protected Local          $local;
+	public ProgressBar       $progress;
 	
 	protected ?string $namespace = null;
 	protected ?string $name      = null;
@@ -42,7 +42,7 @@ class Command extends \Symfony\Component\Console\Command\Command
 		}
 	}
 	
-	private function config()
+	private final function configServers()
 	{
 		$configFile = Dir::fixPath($_SERVER['HOME']) . '/.klahvik';
 		$this->opt('LOCAL_TMP_PATH', KLAHVIK_PATH . 'tmp/');
@@ -91,7 +91,8 @@ class Command extends \Symfony\Component\Console\Command\Command
 		set_time_limit(7200);
 		$this->output = &$output;
 		$this->input  = &$input;
-		$this->config();
+		$this->configServers();
+		$this->configureMethod();
 		$this->beforeExecute();
 		$this->runCommand();
 		$this->afterExecute();
@@ -115,61 +116,55 @@ class Command extends \Symfony\Component\Console\Command\Command
 		return $this->opt[$name];
 	}
 	
-	//region output messages
 	public function error(string $msg)
 	{
-		$this->say("<error>$msg</error>");
+		$this->output->error($msg);
 		exit;
 	}
 	
-	public function info(string $msg)
+	public function region(string $region, callable $regionProcess)
 	{
-		$this->say("<info>$msg</info>");
+		$msg = str_repeat("=", 25);
+		$msg .= "[<question> $region </question>]";
+		$msg .= str_repeat("=", 25);
+		$this->output->comment($msg);
+		$this->output->nl();
+		$regionProcess();
+		$this->output->nl();
+		$this->output->comment($msg);
 	}
 	
-	public function blink($msg)
+	public function processRegionCommand(string $regionName, string $command)
 	{
-		$outputStyle = new OutputFormatterStyle('red', '#ff0', ['bold', 'blink']);
-		$this->output->getFormatter()->setStyle('fire', $outputStyle);
-		$this->output->writeln("<fire>$msg</>");
-	}
-	
-	public function say(string $message, string $suffix = '')
-	{
-		array_map(function ($line) use ($suffix)
+		$this->region($regionName, function () use ($regionName, $command)
 		{
-			$line = trim($line);
-			if ($line)
+			$sectiion = $this->output->section();
+			$process  = Process::fromShellCommandline($command);
+			$process->start();
+			$process->wait(function ($type, $buffer) use ($regionName, $sectiion)
 			{
-				$says = $suffix ? "$suffix says" : 'says';
-				$this->output->writeln("<comment>klahvik $says: </comment>$line");
-			}
-		}, explode("\n", $message));
-	}
-	
-	//endregion
-	
-	protected function progress(callable $command)
-	{
-		// creates a new progress bar (50 units)
-		$this->progress = new ProgressBar($this->output, 50);
-		
-		// starts and displays the progress bar
-		$this->progress->start();
-		$command();
-		$this->progress->finish();
-	}
-	
-	protected function section(string $message, callable $command)
-	{
-		$io = new SymfonyStyle($this->input, $this->output);
-		$io->blockSection($message, $command);
+				$buffer = trim($buffer);
+				if (str_contains($buffer, '%'))
+				{
+					$sectiion->overwrite("<comment>$regionName</comment>: " . $buffer);
+					//$this->output->cl()->write("<comment>$regionName</comment>: " . trim($buffer));
+					//$this->output->cl()->msg($line);
+					//$this->output->cl()->write($line);
+				}
+				else
+				{
+					$this->output->msg($buffer);
+				}
+			});
+		});
 	}
 	
 	protected function success(): int
 	{
 		return \Symfony\Component\Console\Command\Command::SUCCESS;
 	}
+	
+	protected function configureMethod() { }
 	
 	protected function beforeExecute() { }
 	
