@@ -18,5 +18,5 @@ mysqldump --add-drop-table --skip-triggers --single-transaction --no-data ${IGNO
 sed -i 's/DEFINER=[^*]*\*/\*/g' "${structurePath}"
 
 echo "Dump ${db} data"
-mysqldump --add-drop-trigger --skip-triggers --no-create-info --lock-tables=false --skip-lock-tables ${IGNORED_TABLES_STRING} --ignore-table="${db}.db_log" --ignore-table="${db}.session" --ignore-table="${db}.sent_emails" --ignore-table="${db}.log" ${db} > ${dataPath}
+mysqldump --add-drop-trigger --skip-triggers --no-create-info --lock-tables=false --skip-lock-tables ${IGNORED_TABLES_STRING} --ignore-table="${db}.db_log" --ignore-table="${db}.db_log_data" --ignore-table="${db}.session" --ignore-table="${db}.sent_emails" --ignore-table="${db}.log" ${db} > ${dataPath}
 sed -i 's/DEFINER=[^*]*\*/\*/g' "${dataPath}"

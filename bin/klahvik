@@ -31,10 +31,11 @@ $Handler = new Handler($config);
 try
 {
 	$app = new Application('klahvik');
-	$app->add(new \Infira\Klahvik\console\Db);
-	$app->add(new \Infira\Klahvik\console\Data);
+	$app->add(new \Infira\Klahvik\console\klavis\Db);
+
 	$app->add(new \Infira\Klahvik\console\gws\Db);
 	$app->add(new \Infira\Klahvik\console\gws\Data);
+	$app->add(new \Infira\Klahvik\console\gws\PhpStorm);
 	$app->setCatchExceptions(false);
 	$input = new ArgvInput();
 	$app->run($input, new \Infira\Klahvik\helper\ConsoleOutput($input));

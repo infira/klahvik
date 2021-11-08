@@ -3,6 +3,7 @@
   "autoload": {
 	"psr-4": {
 	  "Infira\\Klahvik\\console\\gws\\": "src/console/gws",
+	  "Infira\\Klahvik\\console\\klavis\\": "src/console/klavis",
 	  "Infira\\Klahvik\\console\\": "src/console",
 	  "Infira\\Klahvik\\helper\\": "src/helper",
 	  "Infira\\Klahvik\\": "src/"
