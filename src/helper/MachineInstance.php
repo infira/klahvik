@@ -20,7 +20,7 @@ class MachineInstance
 	
 	public final function rsync(string $server, string $src, string $destination)
 	{
-		$process = Process::fromShellCommandline("rsync --timeout=360 -av --progress --del $server:$src $destination");
+		$process = Process::fromShellCommandline("rsync --timeout=3600 -av --progress --del $server:$src $destination");
 		$process->run(fn($type, $line) => $this->say($line));
 	}
 	
