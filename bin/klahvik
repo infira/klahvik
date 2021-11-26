@@ -33,6 +33,8 @@ try
 	$app = new Application('klahvik');
 	$app->add(new \Infira\Klahvik\console\klavis\Db);
 
+	$app->add(new \Infira\Klahvik\console\tellitoit\Db);
+
 	$app->add(new \Infira\Klahvik\console\gws\Db);
 	$app->add(new \Infira\Klahvik\console\gws\Data);
 	$app->add(new \Infira\Klahvik\console\gws\PhpStorm);

@@ -23,7 +23,7 @@ class Db extends Command
 	public function configure(): void
 	{
 		$this->addOption('domain', 'd', InputOption::VALUE_OPTIONAL, 'In what domain', 'all');
-		$this->addOption('branch', 'b', InputOption::VALUE_OPTIONAL, 'Into what branch', 'live');
+		$this->addOption('branch', 'b', InputOption::VALUE_OPTIONAL, 'Into what branch', 'master');
 		$this->addOption('local', 'l');
 		$this->addOption('force', 'f');
 		$this->addOption('del');
