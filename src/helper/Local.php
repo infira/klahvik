@@ -56,7 +56,7 @@ class Local extends MachineInstance
 	
 	public final function rsync(string $server, string $src, string $destination)
 	{
-		$this->execute("rsync --timeout=3600 -av --progress --del $server:$src $destination");
+		$this->execute("rsync --timeout=0 -av --progress --del $server:$src $destination");
 	}
 	
 	public final function execute(string $command)
