@@ -62,6 +62,7 @@ class Local extends MachineInstance
 	public final function execute(string $command)
 	{
 		$process = Process::fromShellCommandline($command);
+		$process->setTimeout(1800);
 		$process->run(fn($type, $line) => $this->say($line));
 	}
 }

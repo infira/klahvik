@@ -86,6 +86,7 @@ class Command extends \Symfony\Component\Console\Command\Command
 		{
 			$sectiion = $this->output->section();
 			$process  = Process::fromShellCommandline($command);
+			$process->setTimeout(1800);
 			$process->start();
 			$process->wait(function ($type, $buffer) use ($regionName, $sectiion)
 			{
