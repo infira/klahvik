@@ -4,7 +4,6 @@ namespace Infira\Klahvik\helper;
 
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Infira\Klahvik\console\Command;
-use Symfony\Component\Process\Process;
 
 class MachineInstance
 {
@@ -18,13 +17,8 @@ class MachineInstance
 		$this->cmd  = &$cmd;
 	}
 	
-	public final function rsync(string $server, string $src, string $destination)
-	{
-		$process = Process::fromShellCommandline("rsync --timeout=3600 -av --progress --del $server:$src $destination");
-		$process->run(fn($type, $line) => $this->say($line));
-	}
 	
-	public function title(string $title, callable $between)
+	public function section(string $title, callable $between)
 	{
 		$this->sayTitle = $title;
 		$between();

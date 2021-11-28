@@ -4,25 +4,24 @@ namespace Infira\Klahvik\console;
 
 
 use Symfony\Component\Console\Input\InputOption;
+use Infira\Klahvik\config\Config;
+use Infira\Utils\File;
+use Symfony\Component\Console\Input\InputArgument;
 
 class Db extends Command
 {
-	protected ?string $namespace = 'db';
-	protected ?string $name      = 'db';
+	private \Infira\Klahvik\config\Db $config;
 	
-	private array  $databases     = [];
-	private string $localDbPrefix = '';
-	
-	public function __construct(array $databases, string $localDbPrefix)
+	public function __construct(Config $config, string $client)
 	{
-		$this->databases     = $databases;
-		$this->localDbPrefix = $localDbPrefix;
-		parent::__construct();
+		parent::__construct($config, 'db', $client);
+		$this->config = $this->client->getDb();
 	}
 	
 	public function configure(): void
 	{
-		$this->addOption('domain', 'd', InputOption::VALUE_OPTIONAL, 'In what domain', 'all');
+		$this->addArgument('localDb', InputArgument::OPTIONAL);
+		$this->addOption('project', 'p', InputOption::VALUE_OPTIONAL, 'What project to download', 'all');
 		$this->addOption('branch', 'b', InputOption::VALUE_OPTIONAL, 'Into what branch', 'master');
 		$this->addOption('local', 'l');
 		$this->addOption('force', 'f');
@@ -31,74 +30,79 @@ class Db extends Command
 	
 	public function runCommand()
 	{
-		$domain = $this->input->getOption('domain');
-		$branch = $this->input->getOption('branch');
+		$project = $this->input->getOption('project');
+		$branch  = $this->input->getOption('branch');
 		
-		$loop = $domain == 'all' ? array_keys($this->databases) : [$domain];
-		
-		foreach ($loop as $domain)
+		if (!$this->config->projectExists($project))
 		{
-			$this->download($domain, $branch);
+			$this->error("project project('$project') not found");
+		}
+		
+		$loop = $project == 'all' ? $this->config->getProjectNames() : [$project];
+		foreach ($loop as $project)
+		{
+			$this->import($project, $branch);
 			$this->output->nl();
 		}
 	}
 	
-	private function download(string $domain, string $branch)
+	private function import(string $project, string $branch)
 	{
 		$forceDownload   = $this->input->getOption('force');
 		$deleteLocalDump = $this->input->getOption('del');
 		
-		$localDB = $this->localDbPrefix . '_' . $branch . '_' . $domain;
-		$liveDB  = $this->getLiveDB($domain);
+		$localDB = $this->input->hasArgument('localDb') ? $this->input->getArgument('localDb') : $this->config->getLocalName($branch, $project);
+		$liveDB  = $this->config->getRemoteName($project);
 		
-		$this->region("importing domain($domain)", function () use ($deleteLocalDump, $forceDownload, $localDB, $liveDB)
+		$this->region("importing project('$project')", function () use ($deleteLocalDump, $forceDownload, $localDB, $liveDB)
 		{
-			$structurePath = $this->local->tmp("$liveDB.structure.sql");
-			$dataPath      = $this->local->tmp("$liveDB.data.sql");
-			if (!file_exists($structurePath) or !file_exists($dataPath) or $forceDownload)
+			$structurePath = $this->local->tmp("$liveDB.tar.gz");
+			if (!file_exists($structurePath) or $forceDownload)
 			{
 				$this->downloadRemoteDb($liveDB);
 			}
-			$this->importVagrantDb($localDB, $liveDB, $deleteLocalDump);
+			$this->importToVagrant($localDB, $liveDB, $deleteLocalDump);
 		});
-	}
-	
-	private function getLiveDB(?string $domain): string
-	{
-		if (!isset($this->databases[$domain]))
-		{
-			$this->error("domain $domain not found");
-		}
-		
-		return $this->databases[$domain];
 	}
 	
 	protected function downloadRemoteDb(string $db)
 	{
-		$this->remote->title("downloading $db ", function () use ($db)
+		$this->remote->section("downloading $db ", function () use ($db)
 		{
 			$tmpPath = $this->remote->tmp();
-			$this->remote->title("dumping $db", function () use ($db, $tmpPath)
+			$this->remote->section("dumping $db", function () use ($db, $tmpPath)
 			{
-				$this->remote->runKlahvikScript('dumpDb.sh', $db . ' "' . $tmpPath . '"');
+				$dumpBash   = $this->local->createDumpDbBash([
+					'db'       => $db,
+					'tempPath' => $tmpPath,
+				], $this->config->getVoidDataDumpTables());
+				$remoteBash = $this->remote->tmp('dumpDb.sh');
+				
+				$this->remote->upload($dumpBash, $remoteBash);
+				File::delete($dumpBash);
+				$this->remote->runBash($remoteBash, $db . ' "' . $tmpPath . '"');
+				$this->remote->execute("rm -f $remoteBash");
 			});
-			$this->local->title("downloading $db", function () use ($db, $tmpPath)
+			$this->local->section("downloading $db", function () use ($db, $tmpPath)
 			{
-				$this->local->rsync($this->remote->getUserHost(), $this->remote->tmp('*.sql'), $this->local->tmp());
+				$this->local->rsync($this->remote->getUserHost(), $this->remote->tmp("$db.tar.gz"), $this->local->tmp());
 			});
 			
-			$structurePath = $this->remote->klahvikPath("tmp/$db.structure.sql");
-			$dataPath      = $this->remote->klahvikPath("tmp/$db.data.sql");
 			$this->remote->execute([
-				"rm -f $structurePath",
-				"rm -f $dataPath",
+				"rm -f " . $this->remote->tmp("$db.structure.sql"),
+				"rm -f " . $this->remote->tmp("$db.data.sql"),
+				"rm -f " . $this->remote->tmp("$db.tar.gz"),
 			]);
 		});
 	}
 	
-	protected function importVagrantDb(string $db, string $fromDb, bool $deleteDumpFiles = false)
+	protected function importToVagrant(string $db, string $fromDb, bool $deleteDumpFiles = false)
 	{
-		$this->vagrant->title("importing db($fromDb) to ($db)", function () use ($db, $fromDb, $deleteDumpFiles)
+		$this->local->section("unpacking tar", function () use ($db, $fromDb, $deleteDumpFiles)
+		{
+			$this->local->execute(sprintf(' tar -xvf %s -C %s', $this->local->tmp("$fromDb.tar.gz"), $this->local->tmp()));
+		});
+		$this->vagrant->section("importing db($fromDb) to ($db)", function () use ($db, $fromDb, $deleteDumpFiles)
 		{
 			$tmpPath = $this->vagrant->tmp();
 			if (empty(trim($this->vagrant->execute('sudo mysql -e "SHOW DATABASES LIKE \'' . $db . '\'"')->getOutput())))
@@ -114,14 +118,13 @@ class Db extends Command
 			$this->vagrant->say('mysql importing')->execute([
 				"sudo mysql $db < $structureFile",
 				"sudo mysql $db < $dataFile",
+				"sudo rm -f $structureFile",
+				"sudo rm -f $dataFile",
 			]);
-			if ($deleteDumpFiles)
-			{
-				$this->vagrant->execute([
-					"sudo rm -f $structureFile",
-					"sudo rm -f $dataFile",
-				]);
-			}
 		});
+		if ($deleteDumpFiles)
+		{
+			$this->local->execute(sprintf('rm -f %s', $this->local->tmp("$fromDb.tar.gz")));
+		}
 	}
 }

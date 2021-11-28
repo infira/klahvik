@@ -1,9 +1,15 @@
 #!/usr/bin/env php
 <?php
 
-use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Infira\Error\Handler;
+use Symfony\Component\Yaml\Yaml;
+use Infira\Klahvik\config\Config;
+use Symfony\Component\Console\Application;
+use Infira\Utils\Dir;
+use Infira\Klahvik\console\PhpStorm;
+use Infira\Klahvik\console\Db;
+use Infira\Klahvik\console\Data;
 use Symfony\Component\Console\Input\ArgvInput;
 
 if (file_exists(__DIR__ . '/../../../autoload.php'))
@@ -23,27 +29,43 @@ function br2nl(string $str)
 define("KLAHVIK_PATH", realpath(__DIR__ . '/../') . '/');
 
 $out     = new ConsoleOutput();
-$config  = ["errorLevel"           => -1,//-1 means all erors, see https://www.php.net/manual/en/function.error-reporting.php
-            "env"                  => "dev", //dev,stable (stable env does not display full errors erros
-            "debugBacktraceOption" => DEBUG_BACKTRACE_IGNORE_ARGS];
-$Handler = new Handler($config);
+$Handler = new Handler([
+	"errorLevel"           => -1,//-1 means all erors, see https://www.php.net/manual/en/function.error-reporting.php
+	"env"                  => "dev", //dev,stable (stable env does not display full errors erros
+	"debugBacktraceOption" => DEBUG_BACKTRACE_IGNORE_ARGS,
+]);
 
 try
 {
+	$configFile = Dir::fixPath($_SERVER['HOME']) . '/.klahvik.yaml';
+	if (!file_exists($configFile))
+	{
+		throw new Exception("klahvik config file('$configFile') does not exists");
+	}
+	$config = new Config(Yaml::parseFile($configFile));
+
 	$app = new Application('klahvik');
-	$app->add(new \Infira\Klahvik\console\klavis\Db);
-
-	$app->add(new \Infira\Klahvik\console\tellitoit\Db);
-
-	$app->add(new \Infira\Klahvik\console\gws\Db);
-	$app->add(new \Infira\Klahvik\console\gws\Data);
-	$app->add(new \Infira\Klahvik\console\gws\PhpStorm);
+	foreach ($config->getClients() as $client)
+	{
+		$app->add(new Db($config, $client->getName()));
+		$phpStorm = $client->getPhpStorm();
+		if ($phpStorm)
+		{
+			$app->add(new PhpStorm($config, $client->getName()));
+		}
+		$phpStorm = $client->getData();
+		if ($phpStorm)
+		{
+			$app->add(new Data($config, $client->getName()));
+		}
+	}
 	$app->setCatchExceptions(false);
 	$input = new ArgvInput();
 	$app->run($input, new \Infira\Klahvik\helper\ConsoleOutput($input));
 }
 catch (\Infira\Error\Error $e)
 {
+	debug($e->getStack()->extra);
 	$out->writeln("General error: <error>" . br2nl($e->getMessage()) . "</error>");
 	$out->writeln('<info>Trace</info>');
 	foreach ($e->getStackTrace() as $key => $row)
@@ -57,6 +79,7 @@ catch (\Infira\Error\Error $e)
 catch (Throwable $e)
 {
 	$ie = $Handler->catch($e);
+	debug($ie->getStack()->extra);
 	$out->writeln("General error: <error>" . br2nl($ie->getMessage()) . "</error>");
 	$out->writeln('<info>Trace</info>');
 	foreach ($ie->getStackTrace() as $key => $row)

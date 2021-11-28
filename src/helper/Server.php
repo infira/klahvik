@@ -4,49 +4,35 @@ namespace Infira\Klahvik\helper;
 
 use Spatie\Ssh\Ssh;
 use Symfony\Component\Process\Process;
-use Infira\Utils\Dir;
 use Infira\Klahvik\console\Command;
+use Infira\Klahvik\config\Server as Config;
 
 class Server extends MachineInstance
 {
-	private ?string $klahvikPath;
-	private ?string $tmpPath;
-	private string  $user;
-	private string  $host;
-	private ?int    $port;
+	private Config $config;
+	private Local  $local;
 	
-	public function __construct(Command &$cmd, string $user, string $host, int $port = null)
+	public function __construct(Command &$cmd, Config $config, Local $local)
 	{
-		$this->cmd  = &$cmd;
-		$this->user = $user;
-		$this->host = $host;
-		$this->port = $port;
-		parent::__construct($this->host, $cmd);
-	}
-	
-	public function setKlahvikPath(string $klahvikPath): void
-	{
-		$this->klahvikPath = Dir::fixPath($klahvikPath);
+		$this->cmd    = &$cmd;
+		$this->config = &$config;
+		parent::__construct($this->config->getHost(), $cmd);
+		$this->local = $local;
 	}
 	
 	public function klahvikPath(string $path = ''): string
 	{
-		return $this->klahvikPath . $path;
-	}
-	
-	public function setTmpPath(string $path)
-	{
-		$this->tmpPath = $path;
+		return $this->config->getKlahvikPath($path);
 	}
 	
 	public function tmp(string $path = ''): string
 	{
-		return $this->tmpPath . $path;
+		return $this->config->getTmpPath($path);
 	}
 	
 	private function ssh(): Ssh
 	{
-		return Ssh::create($this->user, $this->host, $this->port);
+		return Ssh::create($this->config->getUser(), $this->config->getHost(), $this->config->getPort());
 	}
 	
 	public function execute($command, callable $outputCallback = null, string $msg = null): Process
@@ -61,10 +47,11 @@ class Server extends MachineInstance
 		return $ssh->execute($command);
 	}
 	
-	public function runKlahvikScript(string $script, string $arguments = '')
+	public function runBash(string $scriptPath, string $arguments = '')
 	{
 		$arguments = $arguments ?: " $arguments";
-		$bashPath  = $this->klahvikPath('bash');
+		$bashPath  = dirname($scriptPath);
+		$script    = basename($scriptPath);
 		$this->execute([
 			"cd $bashPath",
 			"bash $script $arguments",
@@ -79,11 +66,23 @@ class Server extends MachineInstance
 		});
 	}
 	
+	public function runKlahvikScript(string $script, string $arguments = '')
+	{
+		$this->runBash($this->klahvikPath("bash/$script"), $arguments);
+	}
+	
 	/**
 	 * @return string - returns user@host
 	 */
 	public function getUserHost(): string
 	{
-		return "$this->user@$this->host";
+		return sprintf("%s@%s", $this->config->getUser(), $this->config->getHost());
+	}
+	
+	
+	public function upload(string $localPath, string $remotePath)
+	{
+		$userHost = $this->getUserHost();
+		$this->local->execute("scp $localPath $userHost:$remotePath");
 	}
 }

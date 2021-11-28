@@ -5,40 +5,35 @@ namespace Infira\Klahvik\console;
 
 use Symfony\Component\Console\Input\InputArgument;
 use CzProject\GitPhp\Git;
-use Infira\Utils\Dir;
 use Spatie\Async\Pool;
-use Symfony\Component\Process\Process;
+use Infira\Klahvik\config\Config;
 
 class PhpStorm extends CommandMethod
 {
-	protected ?string $namespace = 'storm';
-	protected ?string $name      = 'storm';
+	protected ?\Infira\Klahvik\config\PhpStorm $config;
+	
+	public function __construct(Config $config, ?string $client)
+	{
+		parent::__construct($config, 'storm', $client);
+		$this->config = $this->client->getPhpStorm();
+	}
 	
 	public function configure(): void
 	{
 		parent::configure();
 		$this->addArgument('branch', InputArgument::REQUIRED);
-		$this->opt('branchPrefix', 'gar');
 	}
 	
 	
 	public function make()
 	{
-		$requiredConfig = ['repoUrl', 'clonePath'];
-		foreach ($requiredConfig as $cn)
-		{
-			if (!$this->opt($cn))
-			{
-				$this->error("$cn is not configured");
-			}
-		}
-		$clonePath = Dir::fixPath($this->opt('clonePath'));
-		$repoUrl   = $this->opt('repoUrl');
+		$clonePath = $this->config->getClonePath();
+		$repoUrl   = $this->config->getRepoUrl();
 		$branch    = $this->input->getArgument('branch');
 		$clonePath = "$clonePath$branch";
 		
 		system("rm -rf $clonePath");
-		$this->processRegionCommand('cloning repo',"git clone --progress --branch gar19 git@bitbucket.org:infira/gws.git $clonePath");
+		$this->processRegionCommand('cloning repo', "git clone --progress --branch gar19 git@bitbucket.org:infira/gws.git $clonePath");
 		exit("");
 		
 		foreach (range(1, 5) as $i)
@@ -77,7 +72,7 @@ class PhpStorm extends CommandMethod
 		await($pool);
 		
 		return true;
-		$repo->createBranch($this->opt('branchPrefix'), true);
+		$repo->createBranch($this->config->getBranchPrefix(), true);
 		debug($branch);
 	}
 	

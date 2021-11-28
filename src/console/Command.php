@@ -6,11 +6,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\InputInterface;
 use Infira\Klahvik\helper\Server;
 use Infira\Klahvik\helper\Local;
-use Symfony\Component\Console\Helper\ProgressBar;
-use Infira\Utils\Dir;
-use Infira\Klahvik\helper\DotConfig;
 use Infira\Klahvik\helper\ConsoleOutput;
 use Symfony\Component\Process\Process;
+use Infira\Klahvik\config\Config;
+use Infira\Klahvik\config\Client;
 
 class Command extends \Symfony\Component\Console\Command\Command
 {
@@ -19,66 +18,29 @@ class Command extends \Symfony\Component\Console\Command\Command
 	protected Server         $remote;
 	protected Server         $vagrant;
 	protected Local          $local;
-	public ProgressBar       $progress;
+	protected Config         $mainConfig;
+	protected Client         $client;
 	
-	protected ?string $namespace = null;
-	protected ?string $name      = null;
-	
-	private array $opt = [];
-	
-	public function __construct()
+	public function __construct(Config $config, string $command, ?string $client)
 	{
-		if ($this->name === null)
+		$this->mainConfig = $config;
+		if ($client and $command)
 		{
-			throw new \Exception('command name not defined');
-		}
-		if ($this->namespace and $this->name and $this->namespace != $this->name)
-		{
-			parent::__construct("$this->namespace:$this->name");
+			$this->client = $this->mainConfig->getClient($client);
+			parent::__construct("$command:$client");
 		}
 		else
 		{
-			parent::__construct("$this->name");
+			parent::__construct($command);
 		}
 	}
 	
 	private final function configServers()
 	{
-		$configFile = Dir::fixPath($_SERVER['HOME']) . '/.klahvik';
-		$this->opt('LOCAL_TMP_PATH', KLAHVIK_PATH . 'tmp/');
-		if (file_exists($configFile))
-		{
-			$conf = DotConfig::load($configFile);
-			array_walk($conf, fn($value, $name) => $this->opt($name, $value));
-		}
 		$this->configureRemote();
-		$requiredPaths = ['LOCAL_TMP_PATH', 'VAGRANT_KLAHVIK_PATH', 'VAGRANT_TMP_PATH', 'REMOTE_KLAHVIK_PATH', 'REMOTE_TMP_PATH'];
-		foreach ($requiredPaths as $name)
-		{
-			if (!$this->opt($name))
-			{
-				$this->error("config $name is required");
-			}
-			$this->opt($name, Dir::fixPath($this->opt($name)));
-		}
-		$this->local = new Local($this);
-		
-		$this->vagrant = new Server($this, $this->opt('VAGRANT_USER'), $this->opt('VAGRANT_HOST'));
-		$this->vagrant->setKlahvikPath($this->opt('VAGRANT_KLAHVIK_PATH'));
-		$this->vagrant->setTmpPath($this->opt('VAGRANT_TMP_PATH'));
-		
-		
-		if (!$this->opt('REMOTE_USER'))
-		{
-			$this->error('REMOTE_USER is not defined');
-		}
-		if (!$this->opt('REMOTE_HOST'))
-		{
-			$this->error('REMOTE_HOST is not defined');
-		}
-		$this->remote = new Server($this, $this->opt('REMOTE_USER'), $this->opt('REMOTE_HOST'));
-		$this->remote->setKlahvikPath($this->opt('REMOTE_KLAHVIK_PATH'));
-		$this->remote->setTmpPath($this->opt('REMOTE_TMP_PATH'));
+		$this->local   = new Local($this, $this->mainConfig);
+		$this->vagrant = new Server($this, $this->mainConfig->getVagrant(), $this->local);
+		$this->remote  = new Server($this, $this->client->getServer(), $this->local);
 	}
 	
 	/**
@@ -98,22 +60,6 @@ class Command extends \Symfony\Component\Console\Command\Command
 		$this->afterExecute();
 		
 		return $this->success();
-	}
-	
-	public function opt(string $name, $value = null)
-	{
-		if ($value === null)
-		{
-			if (array_key_exists($name, $this->opt))
-			{
-				return $this->opt[$name];
-			}
-			
-			return null;
-		}
-		$this->opt[$name] = $value;
-		
-		return $this->opt[$name];
 	}
 	
 	public function error(string $msg)

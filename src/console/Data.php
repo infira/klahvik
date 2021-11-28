@@ -3,32 +3,35 @@
 namespace Infira\Klahvik\console;
 
 use Symfony\Component\Console\Input\InputArgument;
+use Infira\Klahvik\config\Config;
 
 class Data extends Command
 {
-	protected ?string $namespace = 'data';
-	protected ?string $name      = 'data';
+	private ?\Infira\Klahvik\config\Data $config;
+	
+	private ?\Infira\Klahvik\config\DataSync $sync;
+	
+	public function __construct(Config $config, string $client)
+	{
+		parent::__construct($config, 'data', $client);
+		$this->config = $this->client->getData();
+		$this->sync   = $this->config->getSync();
+	}
 	
 	public function configure(): void
 	{
 		$this->addArgument('sync', InputArgument::REQUIRED);
 	}
 	
-	protected function setSyncDefaultPath(string $src, string $dest)
-	{
-		$this->opt('syncSrc', $src);
-		$this->opt('syncDest', $dest);
-	}
-	
 	public function runCommand()
 	{
+		if ($this->input->getArgument('sync') and !$this->sync)
+		{
+			$this->error("task 'sync' config not defined");
+		}
 		if ($this->input->getArgument('sync'))
 		{
-			if (!$this->opt('syncSrc') or !$this->opt('syncDest'))
-			{
-				$this->error('sync source and destionation undefined');
-			}
-			$this->local->rsync($this->remote->getUserHost(), $this->opt('syncSrc'), $this->opt('syncDest'));
+			$this->local->rsync($this->remote->getUserHost(), $this->sync->getSource(), $this->sync->getDest());
 		}
 	}
 }
