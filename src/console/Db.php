@@ -51,7 +51,7 @@ class Db extends Command
 		$forceDownload   = $this->input->getOption('force');
 		$deleteLocalDump = $this->input->getOption('del');
 		
-		$localDB = $this->input->hasArgument('localDb') ? $this->input->getArgument('localDb') : $this->config->getLocalName($branch, $project);
+		$localDB = $this->input->getArgument('localDb') ? $this->input->getArgument('localDb') : $this->config->getLocalName($branch, $project);
 		$liveDB  = $this->config->getRemoteName($project);
 		
 		$this->region("importing project('$project')", function () use ($deleteLocalDump, $forceDownload, $localDB, $liveDB)
