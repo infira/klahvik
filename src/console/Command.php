@@ -35,7 +35,7 @@ class Command extends \Symfony\Component\Console\Command\Command
 		}
 	}
 	
-	private final function configServers()
+	private function configServers()
 	{
 		$this->configureRemote();
 		$this->local   = new Local($this, $this->mainConfig);

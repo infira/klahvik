@@ -12,7 +12,7 @@ class CommandMethod extends Command
 		$this->addArgument('method', InputArgument::REQUIRED);
 	}
 	
-	public final function runCommand()
+	public function runCommand()
 	{
 		if (!method_exists($this, $method = $this->input->getArgument('method')))
 		{
