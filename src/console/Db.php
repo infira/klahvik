@@ -33,16 +33,13 @@ class Db extends Command
 		$projects = $this->input->getOption('project');
 		$branch  = $this->input->getOption('branch');
 		
-		foreach ($projects as $project)
-		{
-			if (!$this->config->projectExists($project))
-			{
+		foreach (explode(',', $projects) as $project) {
+			if (!$this->config->projectExists($project)) {
 				$this->error("project project('$project') not found");
 			}
 			
 			$loop = $project == 'all' ? $this->config->getProjectNames() : [$project];
-			foreach ($loop as $project)
-			{
+			foreach ($loop as $project) {
 				$this->import($project, $branch);
 				$this->output->nl();
 			}
