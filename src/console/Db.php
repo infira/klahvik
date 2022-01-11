@@ -30,19 +30,22 @@ class Db extends Command
 	
 	public function runCommand()
 	{
-		$project = $this->input->getOption('project');
+		$projects = $this->input->getOption('project');
 		$branch  = $this->input->getOption('branch');
 		
-		if (!$this->config->projectExists($project))
+		foreach ($projects as $project)
 		{
-			$this->error("project project('$project') not found");
-		}
-		
-		$loop = $project == 'all' ? $this->config->getProjectNames() : [$project];
-		foreach ($loop as $project)
-		{
-			$this->import($project, $branch);
-			$this->output->nl();
+			if (!$this->config->projectExists($project))
+			{
+				$this->error("project project('$project') not found");
+			}
+			
+			$loop = $project == 'all' ? $this->config->getProjectNames() : [$project];
+			foreach ($loop as $project)
+			{
+				$this->import($project, $branch);
+				$this->output->nl();
+			}
 		}
 	}
 	
