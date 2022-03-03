@@ -7,15 +7,16 @@ use Symfony\Component\Console\Input\InputArgument;
 use CzProject\GitPhp\Git;
 use Spatie\Async\Pool;
 use Infira\Klahvik\config\Config;
+use Infira\console\Console;
 
 class PhpStorm extends CommandMethod
 {
-	protected ?\Infira\Klahvik\config\PhpStorm $config;
+	protected ?\Infira\Klahvik\config\PhpStorm $phpConfig;
 	
 	public function __construct(Config $config, ?string $client)
 	{
 		parent::__construct($config, 'storm', $client);
-		$this->config = $this->client->getPhpStorm();
+		$this->phpConfig = $this->client->getPhpStorm();
 	}
 	
 	public function configure(): void
@@ -27,17 +28,16 @@ class PhpStorm extends CommandMethod
 	
 	public function make()
 	{
-		$clonePath = $this->config->getClonePath();
-		$repoUrl   = $this->config->getRepoUrl();
+		$clonePath = $this->phpConfig->getClonePath();
+		$repoUrl   = $this->phpConfig->getRepoUrl();
 		$branch    = $this->input->getArgument('branch');
 		$clonePath = "$clonePath$branch";
 		
 		system("rm -rf $clonePath");
-		$this->processRegionCommand('cloning repo', "git clone --progress --branch gar19 git@bitbucket.org:infira/gws.git $clonePath");
+		Console::processRegionCommand('cloning repo', "git clone --progress --branch gar19 git@bitbucket.org:infira/gws.git $clonePath");
 		exit("");
 		
-		foreach (range(1, 5) as $i)
-		{
+		foreach (range(1, 5) as $i) {
 			$pool[] = async(function () use ($i)
 			{
 				$output = $i * 2;
@@ -57,8 +57,7 @@ class PhpStorm extends CommandMethod
 		
 		$pool = Pool::create();
 		
-		foreach (range(1, 5) as $i)
-		{
+		foreach (range(1, 5) as $i) {
 			$pool[] = async(function () use ($i)
 			{
 				$output = $i * 2;
@@ -72,7 +71,7 @@ class PhpStorm extends CommandMethod
 		await($pool);
 		
 		return true;
-		$repo->createBranch($this->config->getBranchPrefix(), true);
+		$repo->createBranch($this->phpConfig->getBranchPrefix(), true);
 		debug($branch);
 	}
 	

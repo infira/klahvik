@@ -1,30 +1,24 @@
 {
   "name": "infira/klahvik",
-  "autoload": {
-	"psr-4": {
-	  "Infira\\Klahvik\\console\\gws\\": "src/console/gws",
-	  "Infira\\Klahvik\\console\\klavis\\": "src/console/klavis",
-	  "Infira\\Klahvik\\console\\": "src/console",
-	  "Infira\\Klahvik\\helper\\": "src/helper",
-	  "Infira\\Klahvik\\": "src/"
-	}
-  },
-  "minimum-stability": "dev",
   "authors": [
 	{
 	  "name": "Gen Taliar",
 	  "email": "gen@infira.ee"
 	}
   ],
+  "autoload": {
+	"psr-4": {
+	  "Infira\\Klahvik\\": "src/"
+	}
+  },
+  "minimum-stability": "dev",
   "bin": [
 	"bin/klahvik"
   ],
   "require": {
-	"symfony/yaml": "5.*",
-	"symfony/console": "5.*",
-	"symfony/process": "5.*",
-	"infira/utils": "2.*",
+	"php": ">=8.0.2",
+	"infira/console": "dev-main",
 	"spatie/ssh": "1.*",
-	"infira/errorhandler": "1.4.*"
+    "symfony/filesystem": "6.1.x-dev"
   }
 }

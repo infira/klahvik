@@ -2,7 +2,7 @@
 
 namespace Infira\Klahvik\config;
 
-use Infira\Klahvik\Klahvik;
+use Wolo\File\Path;
 
 class PhpStorm extends Manager
 {
@@ -21,9 +21,9 @@ class PhpStorm extends Manager
 		return $this->get('repoUrl');
 	}
 	
-	public function getClonePath(string $path = '')
+	public function getClonePath(string $path = ''): string
 	{
-		return Klahvik::fixPath($this->get('clonePath') . $path);
+		return Path::join($this->get('clonePath'), $path);
 	}
 	
 	public function getBranchPrefix(): string

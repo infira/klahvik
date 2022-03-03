@@ -2,7 +2,7 @@
 
 namespace Infira\Klahvik\config;
 
-use Infira\Klahvik\Klahvik;
+use Wolo\File\Path;
 
 class Config extends Manager
 {
@@ -14,8 +14,7 @@ class Config extends Manager
 			'vagrant'      => '\\Infira\Klahvik\config\Server',
 			'clients'      => function (array $clients)
 			{
-				foreach ($clients as $client => $config)
-				{
+				foreach ($clients as $client => $config) {
 					$config['db']     = $this->getDb()->getMerged($config['db']);
 					$clients[$client] = new Client($config, $client, "$this->instance/$client");
 				}
@@ -26,9 +25,9 @@ class Config extends Manager
 		parent::__construct('config', '', $configConfig, $realConfig);
 	}
 	
-	public function getLocalTmpPath(string $path = '')
+	public function getLocalTmpPath(string $path = ''): string
 	{
-		return Klahvik::fixPath($this->get('localTmpPath') . $path);
+		return Path::join($this->get('localTmpPath'), $path);
 	}
 	
 	public function getDb(): Db
@@ -44,8 +43,7 @@ class Config extends Manager
 	public function getClient(string $client): Client
 	{
 		$clients = $this->getClients();
-		if (!isset($clients[$client]))
-		{
+		if (!isset($clients[$client])) {
 			$this->error('clients', "client('$client') does not exist");
 		}
 		

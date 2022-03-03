@@ -2,8 +2,9 @@
 
 namespace Infira\Klahvik\config;
 
-use Infira\Klahvik\Klahvik;
-use Infira\Utils\Dir;
+use Wolo\File\Path;
+use Infira\Error\Error;
+use Infira\console\Console;
 
 abstract class Manager
 {
@@ -20,8 +21,7 @@ abstract class Manager
 	
 	private function parseConfig(array $keyConfig, array &$config)
 	{
-		foreach ($keyConfig as $key => $parser)
-		{
+		foreach ($keyConfig as $key => $parser) {
 			$config[$key] = $this->parseConfigKey($key, $parser, $config[$key] ?? self::NOT_SET);
 		}
 	}
@@ -30,74 +30,59 @@ abstract class Manager
 	{
 		$value      = $this->parserValue($value);
 		$isValueSet = $value !== self::NOT_SET;
-		if (is_string($parser) and substr($parser, 0, 2) == '??')
-		{
+		if (is_string($parser) and str_starts_with($parser, '??')) {
 			$parser = substr($parser, 2);
 			
 			//??stringPath:{klahvikPath}tmp
 			$else = null;
-			if (strpos($parser, ':'))
-			{
+			if (strpos($parser, ':')) {
 				$ex     = explode(':', $parser);
 				$else   = $ex[1];
 				$parser = $ex[0];
 			}
 			
-			if (!$isValueSet and $else === null)
-			{
+			if (!$isValueSet and $else === null) {
 				return null;
 			}
-			if (!$isValueSet and $else !== null)
-			{
+			if (!$isValueSet and $else !== null) {
 				return $this->parseConfigKey($key, "??$parser", $else);
 			}
 			
 			return $this->parseConfigKey($key, $parser, $value);
 		}
-		elseif (is_string($parser) and $parser[0] == '\\' and $isValueSet)
-		{
+		elseif (is_string($parser) and $parser[0] == '\\' and $isValueSet) {
 			return new $parser($value, $this->instance);
 		}
-		elseif ($parser === 'array' and !is_array($value) and $isValueSet)
-		{
+		elseif ($parser === 'array' and !is_array($value) and $isValueSet) {
 			$this->error($key, 'must be string');
 		}
-		elseif ($parser === 'int' and !is_int($value) and $isValueSet)
-		{
+		elseif ($parser === 'int' and !is_int($value) and $isValueSet) {
 			$this->error($key, 'must be integer');
 		}
-		elseif ($parser === 'string' and !is_string($value) and $isValueSet)
-		{
+		elseif ($parser === 'string' and !is_string($value) and $isValueSet) {
 			$this->error($key, 'must be string');
 		}
-		elseif ($parser === 'path' and $isValueSet)
-		{
-			if (!is_string($value) and !is_dir($value))
-			{
+		elseif ($parser === 'path' and $isValueSet) {
+			if (!is_string($value) and !is_dir($value)) {
 				$this->error($key, 'must be exising path');
 			}
 			
-			return Dir::fixPath($value);
+			return Path::slash($value);
 		}
-		elseif ($parser === 'stringPath')
-		{
-			if (!is_string($value))
-			{
+		elseif ($parser === 'stringPath') {
+			if (!is_string($value)) {
 				$this->error($key, 'must be path');
 			}
-			if ($value[0] != '/')
-			{
+			if ($value[0] != '/') {
 				$this->error($key, 'must be absolute path');
 			}
 			
-			return Dir::fixPath($value);
+			return Path::slash($value);
 		}
-		elseif (is_callable($parser))
-		{
+		elseif (is_callable($parser)) {
 			return $parser($value, $key);
 		}
-		if (!$isValueSet)
-		{
+		if (!$isValueSet) {
 			$this->error($key, 'is mandatory');
 		}
 		
@@ -106,8 +91,7 @@ abstract class Manager
 	
 	private function parserValue($value)
 	{
-		if (is_string($value) and preg_match('/\[(.*)\]/m', $value, $matches))
-		{
+		if (is_string($value) and preg_match('/\[(.*)\]/m', $value, $matches)) {
 			return str_replace($matches[0], $this->config[$matches[1]], $value);
 		}
 		
@@ -116,8 +100,7 @@ abstract class Manager
 	
 	protected function get(string $name)
 	{
-		if (!array_key_exists($name, $this->config))
-		{
+		if (!array_key_exists($name, $this->config)) {
 			$this->error($name, 'does not exist');
 		}
 		
@@ -126,8 +109,8 @@ abstract class Manager
 	
 	protected function error(string $key, string $message)
 	{
-		addExtraErrorInfo('configTrace', $this->instance);
-		Klahvik::error("ConfigManager('$this->instance') says: key('$key') $message");
+		Error::addDebug('configTrace', $this->instance);
+		Console::error("ConfigManager('$this->instance') says: key('$key') $message");
 	}
 	
 	public function getConfigs(): array
@@ -135,13 +118,10 @@ abstract class Manager
 		return $this->config;
 	}
 	
-	
 	public function getMerged(array $merge): array
 	{
-		foreach ($this->config as $key => $conf)
-		{
-			if (array_key_exists($key, $merge))
-			{
+		foreach ($this->config as $key => $conf) {
+			if (array_key_exists($key, $merge)) {
 				$merge[$key] = is_array($conf) ? array_merge($conf, $merge[$key]) : $merge[$key];
 				continue;
 			}

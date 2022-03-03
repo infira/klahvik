@@ -4,6 +4,7 @@ namespace Infira\Klahvik\console;
 
 
 use Symfony\Component\Console\Input\InputArgument;
+use Infira\console\Console;
 
 class CommandMethod extends Command
 {
@@ -14,9 +15,8 @@ class CommandMethod extends Command
 	
 	public function runCommand()
 	{
-		if (!method_exists($this, $method = $this->input->getArgument('method')))
-		{
-			$this->error("Method $method does not exists");
+		if (!method_exists($this, $method = $this->input->getArgument('method'))) {
+			Console::error("Method $method does not exists");
 		}
 		$this->$method();
 	}

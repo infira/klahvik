@@ -2,7 +2,7 @@
 
 namespace Infira\Klahvik\config;
 
-use Infira\Klahvik\Klahvik;
+use Wolo\File\Path;
 
 class DataSync extends Manager
 {
@@ -15,13 +15,13 @@ class DataSync extends Manager
 		parent::__construct('sync', $parentInstance, $configConfig, $realConfig);
 	}
 	
-	public function getSource(string $path = '')
+	public function getSource(string $path = ''): string
 	{
-		return Klahvik::fixPath($this->get('src') . $path);
+		return Path::join($this->get('src'), $path);
 	}
 	
-	public function getDest(string $path = '')
+	public function getDest(string $path = ''): string
 	{
-		return Klahvik::fixPath($this->get('dest') . $path);
+		return Path::join($this->get('dest'), $path);
 	}
 }

@@ -4,19 +4,18 @@ namespace Infira\Klahvik\helper;
 
 use Spatie\Ssh\Ssh;
 use Symfony\Component\Process\Process;
-use Infira\Klahvik\console\Command;
 use Infira\Klahvik\config\Server as Config;
+use Infira\console\Console;
 
 class Server extends MachineInstance
 {
 	private Config $config;
 	private Local  $local;
 	
-	public function __construct(Command &$cmd, Config $config, Local $local)
+	public function __construct(Config $config, Local $local)
 	{
-		$this->cmd    = &$cmd;
 		$this->config = &$config;
-		parent::__construct($this->config->getHost(), $cmd);
+		parent::__construct($this->config->getHost());
 		$this->local = $local;
 	}
 	
@@ -38,8 +37,7 @@ class Server extends MachineInstance
 	public function execute($command, callable $outputCallback = null, string $msg = null): Process
 	{
 		$ssh = $this->ssh();
-		if ($outputCallback)
-		{
+		if ($outputCallback) {
 			$ssh->onOutput(fn($type, $line) => $outputCallback($line));
 		}
 		!$msg ?: $this->say($msg);
@@ -57,10 +55,8 @@ class Server extends MachineInstance
 			"bash $script $arguments",
 		], function ($line)
 		{
-			if (str_contains($line, 'error'))
-			{
-				$this->cmd->output->error($line);
-				exit;
+			if (str_contains($line, 'error')) {
+				Console::error($line);
 			}
 			$this->say($line);
 		});

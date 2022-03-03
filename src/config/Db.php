@@ -48,7 +48,7 @@ class Db extends Manager
 	public function getVoidDataDumpTables(): array
 	{
 		$tables = $this->get('voidDataDumpTables');
-		array_walk($tables, fn(&$table) => trim($table));
+		array_walk($tables, fn($table) => trim($table));
 		
 		return $tables;
 	}

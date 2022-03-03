@@ -4,8 +4,9 @@ namespace Infira\Klahvik\helper;
 
 use Infira\Klahvik\console\Command;
 use Infira\Klahvik\config\Config;
-use Infira\Utils\File;
+use Wolo\File\File;
 use Symfony\Component\Process\Process;
+use Infira\console\Console;
 
 class Local extends MachineInstance
 {
@@ -26,18 +27,16 @@ class Local extends MachineInstance
 	public function createBash(string $templateFileName, string $bashFileName, array $variables): string
 	{
 		$tmpl = KLAHVIK_PATH . 'src/bashTemplates/' . $templateFileName;
-		if (!file_exists($tmpl))
-		{
-			$this->cmd->error("bash template('$tmpl') does not exist");
+		if (!file_exists($tmpl)) {
+			Console::error("bash template('$tmpl') does not exist");
 		}
 		$content = file_get_contents($tmpl);
-		foreach ($variables as $name => $value)
-		{
+		foreach ($variables as $name => $value) {
 			$content = str_replace('${' . $name . '}', $value, $content);
 		}
 		$bash = $this->tmp($bashFileName);
 		File::delete($bash);
-		File::create($bash, $content);
+		File::put($bash, $content);
 		
 		return $bash;
 	}
@@ -45,8 +44,7 @@ class Local extends MachineInstance
 	public function createDumpDbBash(array $variables, array $ignoreTables): string
 	{
 		$variables['IGNORE_DATA_TABLE_STRING'] = [];
-		foreach ($ignoreTables as $table)
-		{
+		foreach ($ignoreTables as $table) {
 			$variables['IGNORE_DATA_TABLE_STRING'][] = '--ignore-table="' . $variables['db'] . '.' . $table . '"';
 		}
 		$variables['IGNORE_DATA_TABLE_STRING'] = join(' ', $variables['IGNORE_DATA_TABLE_STRING']);

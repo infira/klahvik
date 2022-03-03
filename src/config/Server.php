@@ -2,7 +2,7 @@
 
 namespace Infira\Klahvik\config;
 
-use Infira\Klahvik\Klahvik;
+use Wolo\File\Path;
 
 class Server extends Manager
 {
@@ -35,12 +35,12 @@ class Server extends Manager
 	
 	public function getKlahvikPath(string $path = ''): string
 	{
-		return Klahvik::fixPath($this->get('klahvikPath') . $path);
+		return Path::join($this->get('klahvikPath'), $path);
 	}
 	
 	public function getTmpPath(string $path = ''): string
 	{
-		return Klahvik::fixPath($this->get('tmpPath') . $path);
+		return Path::join($this->get('tmpPath'), $path);
 	}
 	
 }

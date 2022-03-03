@@ -3,20 +3,17 @@
 namespace Infira\Klahvik\helper;
 
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
-use Infira\Klahvik\console\Command;
+use Infira\console\Console;
 
 class MachineInstance
 {
-	private           $name     = '';
-	private           $sayTitle = '';
-	protected Command $cmd;
+	private $name     = '';
+	private $sayTitle = '';
 	
-	public function __construct(string $name, Command &$cmd)
+	public function __construct(string $name)
 	{
 		$this->name = $name;
-		$this->cmd  = &$cmd;
 	}
-	
 	
 	public function section(string $title, callable $between)
 	{
@@ -27,19 +24,18 @@ class MachineInstance
 	
 	public function say(string $msg = '')
 	{
-		$msg = $this->cmd->output->into1Line($msg);
-		if (!$msg)
-		{
+		$msg = Console::into1Line($msg);
+		if (!$msg) {
 			return $this;
 		}
 		$outputStyle = new OutputFormatterStyle('magenta');
-		$this->cmd->output->getFormatter()->setStyle('title', $outputStyle);
+		Console::$output->getFormatter()->setStyle('title', $outputStyle);
 		
 		$msg   = trim($msg);
 		$msg   = $msg ? " $msg" : '';
 		$title = $this->sayTitle ? "<title> $this->sayTitle </title>" : '';
 		$msg   = "<fg=black;bg=bright-yellow>$this->name: </>$title$msg";
-		$this->cmd->output->say($msg);
+		Console::say($msg);
 		
 		return $this;
 	}
