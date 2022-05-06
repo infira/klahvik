@@ -3,13 +3,9 @@ declare IGNORED_VIEWS_STRING=""
 declare IGNORE_DATA_TABLE_STRING=""
 cd ${tempPath}
 # shellcheck disable=SC2006
-for table in `echo "show tables" | mysql "${db}"`;
+mysql --skip-column-names -e"SHOW FULL tables FROM ${db} WHERE Table_Type != 'VIEW'" | while read -r table type; do
 do
-    if [[ ! $table == "Tables_in_${db}" ]]; then
-        if [[ $table == "v_"* ]]; then
-          IGNORED_VIEWS_STRING+=" --ignore-table=${db}.${table}"
-        fi
-    fi
+  IGNORED_VIEWS_STRING+=" --ignore-table=${db}.${table}"
 done
 
 echo "Dump ${db} structure"
