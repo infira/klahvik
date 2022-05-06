@@ -2,13 +2,13 @@
 declare IGNORED_VIEWS_STRING=""
 declare IGNORE_DATA_TABLE_STRING=""
 cd ${tempPath}
-# shellcheck disable=SC2006
-mysql --skip-column-names -e"SHOW FULL tables FROM ${db} WHERE Table_Type != 'VIEW'" | while read -r table type; do
-do
-  IGNORED_VIEWS_STRING+=" --ignore-table=${db}.${table}"
-done
 
-echo "Dump ${db} structure"
+lines=$(mysql --skip-column-names -e"SHOW FULL tables FROM ${db} WHERE Table_Type = 'VIEW'")
+while read -r table type; do
+  IGNORED_VIEWS_STRING+=" --ignore-table=${db}.${table}"
+done <<<"$lines"
+
+echo mysqldump --add-drop-table --skip-triggers --single-transaction --no-data ${IGNORED_VIEWS_STRING} ${db} > ${db}.structure.sql
 mysqldump --add-drop-table --skip-triggers --single-transaction --no-data ${IGNORED_VIEWS_STRING} ${db} > ${db}.structure.sql
 sed -i 's/DEFINER=[^*]*\*/\*/g' "${db}.structure.sql"
 
