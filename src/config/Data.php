@@ -7,13 +7,15 @@ class Data extends Manager
 	public function __construct(array $realConfig, string $parentInstance = '')
 	{
 		$configConfig = [
-			'sync' => '??\\Infira\Klahvik\config\DataSync',
+			'sync' => 'array',
 		];
 		parent::__construct('data', $parentInstance, $configConfig, $realConfig);
 	}
 	
-	public function getSync(): ?DataSync
+	public function getSync(): array
 	{
-		return $this->get('sync');
+		$s = $this->get('sync');
+		
+		return is_array($s) ? $s : [];
 	}
 }

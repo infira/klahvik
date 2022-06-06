@@ -26,7 +26,7 @@ define("KLAHVIK_PATH", realpath(__DIR__ . '/../') . '/');
 Bin::init(realpath(__DIR__));
 Bin::run('klahvik', function (Application $app, \Infira\console\ConsoleOutput $output)
 {
-	$configFile = \Wolo\File\Path::join($_SERVER['HOME'], '.klahvik.yaml');
+	$configFile = \Wolo\File\Path::join($_SERVER['HOME'], 'ws/dotfiles/.klahvik.yaml');
 	if (!file_exists($configFile)) {
 		throw new Exception("klahvik config file('$configFile') does not exists");
 	}
