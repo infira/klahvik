@@ -30,17 +30,17 @@ Bin::run('klahvik', function (Application $app, \Infira\console\ConsoleOutput $o
 	if (!file_exists($configFile)) {
 		throw new Exception("klahvik config file('$configFile') does not exists");
 	}
-	$config = new Config(Yaml::parseFile($configFile));
+	Config::set(Yaml::parseFile($configFile));
 
-	foreach ($config->getClients() as $client) {
-		$app->add(new Db($config, $client->getName()));
+	foreach (Config::getClients() as $client) {
+		$app->add(new Db($client->getName()));
 		$phpStorm = $client->getPhpStorm();
 		if ($phpStorm) {
-			$app->add(new PhpStorm($config, $client->getName()));
+			$app->add(new PhpStorm($client->getName()));
 		}
 		$phpStorm = $client->getData();
 		if ($phpStorm) {
-			$app->add(new Data($config, $client->getName()));
+			$app->add(new Data($client->getName()));
 		}
 	}
 });

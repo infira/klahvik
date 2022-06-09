@@ -2,20 +2,16 @@
 
 namespace Infira\Klahvik\config;
 
-use Wolo\File\Path;
-
-class Server extends Manager
+class Server extends Machine
 {
 	public function __construct(array $realConfig, string $parentInstance = '')
 	{
 		$configConfig = [
-			'user'        => 'string',
-			'host'        => 'string',
-			'port'        => '??int',
-			'klahvikPath' => 'stringPath',
-			'tmpPath'     => '??stringPath:[klahvikPath]tmp',
+			'user' => 'string',
+			'host' => 'string',
+			'port' => '??int',
 		];
-		parent::__construct('server', $parentInstance, $configConfig, $realConfig);
+		parent::__construct('server', $realConfig, $parentInstance, $configConfig);
 	}
 	
 	public function getUser(): string
@@ -32,15 +28,4 @@ class Server extends Manager
 	{
 		return $this->get('port');
 	}
-	
-	public function getKlahvikPath(string $path = ''): string
-	{
-		return Path::join($this->get('klahvikPath'), $path);
-	}
-	
-	public function getTmpPath(string $path = ''): string
-	{
-		return Path::join($this->get('tmpPath'), $path);
-	}
-	
 }

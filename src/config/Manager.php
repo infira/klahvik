@@ -2,13 +2,13 @@
 
 namespace Infira\Klahvik\config;
 
-use Wolo\File\Path;
+use Infira\Klahvik\console\Console;
 use Infira\Error\Error;
-use Infira\console\Console;
+use Wolo\File\Path;
 
 abstract class Manager
 {
-	private array    $config = [];
+	private array    $config;
 	protected string $instance;
 	const NOT_SET = '__NOT_SET_';
 	
@@ -19,7 +19,7 @@ abstract class Manager
 		$this->parseConfig($keyConfig, $this->config);
 	}
 	
-	private function parseConfig(array $keyConfig, array &$config)
+	private function parseConfig(array $keyConfig, array &$config): void
 	{
 		foreach ($keyConfig as $key => $parser) {
 			$config[$key] = $this->parseConfigKey($key, $parser, $config[$key] ?? self::NOT_SET);
@@ -33,7 +33,6 @@ abstract class Manager
 		if (is_string($parser) and str_starts_with($parser, '??')) {
 			$parser = substr($parser, 2);
 			
-			//??stringPath:{klahvikPath}tmp
 			$else = null;
 			if (strpos($parser, ':')) {
 				$ex     = explode(':', $parser);
@@ -98,7 +97,7 @@ abstract class Manager
 		return $value;
 	}
 	
-	protected function get(string $name)
+	public function get(string $name)
 	{
 		if (!array_key_exists($name, $this->config)) {
 			$this->error($name, 'does not exist');
@@ -107,15 +106,10 @@ abstract class Manager
 		return $this->config[$name];
 	}
 	
-	protected function error(string $key, string $message)
+	protected function error(string $key, string $message): void
 	{
 		Error::addDebug('configTrace', $this->instance);
 		Console::error("ConfigManager('$this->instance') says: key('$key') $message");
-	}
-	
-	public function getConfigs(): array
-	{
-		return $this->config;
 	}
 	
 	public function getMerged(array $merge): array
@@ -130,5 +124,4 @@ abstract class Manager
 		
 		return $merge;
 	}
-	
 }

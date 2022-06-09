@@ -4,54 +4,47 @@ namespace Infira\Klahvik\config;
 
 use Wolo\File\Path;
 
-class Config extends Manager
+class Config
 {
-	public function __construct(array $realConfig)
+	private static MainConfig $config;
+	
+	public static function set(array $realConfig): void
 	{
-		$configConfig = [
-			'localTmpPath' => 'path',
-			'db'           => '\\Infira\Klahvik\config\Db',
-			'vagrant'      => '\\Infira\Klahvik\config\Server',
-			'clients'      => function (array $clients)
-			{
-				foreach ($clients as $client => $config) {
-					$config['db']     = $this->getDb()->getMerged($config['db']);
-					$clients[$client] = new Client($config, $client, "$this->instance/$client");
-				}
-				
-				return $clients;
-			},
-		];
-		parent::__construct('config', '', $configConfig, $realConfig);
+		self::$config = new MainConfig($realConfig);
 	}
 	
-	public function getLocalTmpPath(string $path = ''): string
+	public static function getLocalTmpPath(string $path = ''): string
 	{
-		return Path::join($this->get('localTmpPath'), $path);
+		return Path::join(self::$config->get('localTmpPath'), $path);
 	}
 	
-	public function getDb(): Db
+	public static function getDb(): Db
 	{
-		return $this->get('db');
+		return self::$config->getDb();
 	}
 	
-	public function getVagrant(): Server
+	public static function getVagrant(): Server
 	{
-		return $this->get('vagrant');
+		return self::$config->getVagrant();
 	}
 	
-	public function getClient(string $client): Client
+	public static function getDocker(): Docker
 	{
-		$clients = $this->getClients();
-		if (!isset($clients[$client])) {
-			$this->error('clients', "client('$client') does not exist");
-		}
-		
-		return $clients[$client];
+		return self::$config->getDocker();
 	}
 	
-	public function getClients(): array
+	public static function getLocal(): LocalConfig
 	{
-		return $this->get('clients');
+		return self::$config->getLocal();
+	}
+	
+	public static function getClient(string $client): Client
+	{
+		return self::$config->getClient($client);
+	}
+	
+	public static function getClients(): array
+	{
+		return self::$config->getClients();
 	}
 }

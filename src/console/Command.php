@@ -2,27 +2,24 @@
 
 namespace Infira\Klahvik\console;
 
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Input\InputInterface;
-use Infira\Klahvik\helper\Server;
-use Infira\Klahvik\helper\Local;
-use Symfony\Component\Process\Process;
-use Infira\Klahvik\config\Config;
 use Infira\Klahvik\config\Client;
+use Infira\Klahvik\config\Config;
+use Infira\Klahvik\helper\Docker;
+use Infira\Klahvik\helper\Local;
+use Infira\Klahvik\helper\Server;
 
 class Command extends \Infira\console\Command
 {
 	protected Server $remote;
 	protected Server $vagrant;
 	protected Local  $local;
-	protected Config $mainConfig;
+	protected Docker $docker;
 	protected Client $client;
 	
-	public function __construct(Config $config, string $command, ?string $client)
+	public function __construct(string $command, ?string $client)
 	{
-		$this->mainConfig = $config;
 		if ($client and $command) {
-			$this->client = $this->mainConfig->getClient($client);
+			$this->client = Config::getClient($client);
 			parent::__construct("$command:$client");
 		}
 		else {
@@ -33,8 +30,10 @@ class Command extends \Infira\console\Command
 	protected function configureExecute()
 	{
 		$this->configureRemote();
-		$this->local   = new Local($this, $this->mainConfig);
-		$this->vagrant = new Server($this->mainConfig->getVagrant(), $this->local);
+		$this->local  = new Local('localhost', Config::getLocal());
+		$this->docker = new Docker();
+		
+		$this->vagrant = new Server(Config::getVagrant(), $this->local);
 		$this->remote  = new Server($this->client->getServer(), $this->local);
 		$this->configureMethod();
 	}

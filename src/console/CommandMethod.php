@@ -4,7 +4,6 @@ namespace Infira\Klahvik\console;
 
 
 use Symfony\Component\Console\Input\InputArgument;
-use Infira\console\Console;
 
 class CommandMethod extends Command
 {

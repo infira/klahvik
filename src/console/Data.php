@@ -3,8 +3,6 @@
 namespace Infira\Klahvik\console;
 
 use Symfony\Component\Console\Input\InputArgument;
-use Infira\Klahvik\config\Config;
-use Infira\console\Console;
 use Symfony\Component\Console\Input\InputOption;
 
 class Data extends Command
@@ -13,9 +11,9 @@ class Data extends Command
 	
 	private array $sync;
 	
-	public function __construct(Config $config, string $client)
+	public function __construct(string $client)
 	{
-		parent::__construct($config, 'data', $client);
+		parent::__construct('data', $client);
 		$this->dataConfig = $this->client->getData();
 		$this->sync       = $this->dataConfig->getSync();
 	}

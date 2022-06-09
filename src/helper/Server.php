@@ -2,69 +2,32 @@
 
 namespace Infira\Klahvik\helper;
 
+use Infira\Klahvik\config\Server as Config;
 use Spatie\Ssh\Ssh;
 use Symfony\Component\Process\Process;
-use Infira\Klahvik\config\Server as Config;
-use Infira\console\Console;
 
+/**
+ * @property \Infira\Klahvik\config\Server $config
+ */
 class Server extends MachineInstance
 {
-	private Config $config;
-	private Local  $local;
+	private Local $local;
 	
 	public function __construct(Config $config, Local $local)
 	{
-		$this->config = &$config;
-		parent::__construct($this->config->getHost());
+		parent::__construct($config->getHost(), $config);
 		$this->local = $local;
-	}
-	
-	public function klahvikPath(string $path = ''): string
-	{
-		return $this->config->getKlahvikPath($path);
-	}
-	
-	public function tmp(string $path = ''): string
-	{
-		return $this->config->getTmpPath($path);
-	}
-	
-	private function ssh(): Ssh
-	{
-		return Ssh::create($this->config->getUser(), $this->config->getHost(), $this->config->getPort());
 	}
 	
 	public function execute($command, callable $outputCallback = null, string $msg = null): Process
 	{
-		$ssh = $this->ssh();
+		$ssh = Ssh::create($this->config->getUser(), $this->config->getHost(), $this->config->getPort());
 		if ($outputCallback) {
 			$ssh->onOutput(fn($type, $line) => $outputCallback($line));
 		}
 		!$msg ?: $this->say($msg);
 		
 		return $ssh->execute($command);
-	}
-	
-	public function runBash(string $scriptPath, string $arguments = '')
-	{
-		$arguments = $arguments ?: " $arguments";
-		$bashPath  = dirname($scriptPath);
-		$script    = basename($scriptPath);
-		$this->execute([
-			"cd $bashPath",
-			"bash $script $arguments",
-		], function ($line)
-		{
-			if (str_contains($line, 'error')) {
-				Console::error($line);
-			}
-			$this->say($line);
-		});
-	}
-	
-	public function runKlahvikScript(string $script, string $arguments = '')
-	{
-		$this->runBash($this->klahvikPath("bash/$script"), $arguments);
 	}
 	
 	/**
@@ -75,10 +38,9 @@ class Server extends MachineInstance
 		return sprintf("%s@%s", $this->config->getUser(), $this->config->getHost());
 	}
 	
-	
 	public function upload(string $localPath, string $remotePath)
 	{
 		$userHost = $this->getUserHost();
-		$this->local->execute("scp $localPath $userHost:$remotePath");
+		$this->local->process("scp $localPath $userHost:$remotePath")->say();
 	}
 }

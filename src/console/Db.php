@@ -3,20 +3,19 @@
 namespace Infira\Klahvik\console;
 
 
-use Symfony\Component\Console\Input\InputOption;
 use Infira\Klahvik\config\Config;
-use Wolo\File\File;
-use Symfony\Component\Console\Input\InputArgument;
-use Infira\console\Console;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputOption;
+use Wolo\File\File;
 
 class Db extends Command
 {
 	private \Infira\Klahvik\config\Db $dbConfig;
 	
-	public function __construct(Config $config, string $client)
+	public function __construct(string $client)
 	{
-		parent::__construct($config, 'db', $client);
+		parent::__construct('db', $client);
 		$this->dbConfig = $this->client->getDb();
 	}
 	
@@ -41,8 +40,8 @@ class Db extends Command
 			}
 			
 			$loop = $project == 'all' ? $this->dbConfig->getProjectNames() : [$project];
-			foreach ($loop as $project) {
-				$this->import($project, $branch);
+			foreach ($loop as $lProject) {
+				$this->import($lProject, $branch);
 				Console::nl();
 			}
 		}
@@ -58,11 +57,12 @@ class Db extends Command
 		
 		Console::region("importing project('$project')", function () use ($deleteLocalDump, $forceDownload, $localDB, $liveDB)
 		{
-			$structurePath = $this->local->tmp("$liveDB.tar.gz");
+			$structurePath = Config::getLocalTmpPath("$liveDB.tar.gz");
 			if (!file_exists($structurePath) or $forceDownload) {
 				$this->downloadRemoteDb($liveDB);
 			}
-			$this->importToVagrant($localDB, $liveDB, $deleteLocalDump);
+			//$this->importToVagrant($localDB, $liveDB, $deleteLocalDump);
+			$this->importToDocker($localDB, $liveDB, $deleteLocalDump);
 		});
 	}
 	
@@ -86,7 +86,7 @@ class Db extends Command
 			});
 			$this->local->section("downloading $db", function () use ($db, $tmpPath)
 			{
-				$this->local->rsync($this->remote->getUserHost(), $this->remote->tmp("$db.tar.gz"), $this->local->tmp());
+				$this->local->rsync($this->remote->getUserHost(), $this->remote->tmp("$db.tar.gz"), Config::getLocalTmpPath());
 			});
 			
 			$this->remote->execute([
@@ -97,11 +97,34 @@ class Db extends Command
 		});
 	}
 	
+	protected function importToDocker(string $db, string $fromDb, bool $deleteDumpFiles = false)
+	{
+		$this->local->section("unpacking tar", function () use ($db, $fromDb, $deleteDumpFiles)
+		{
+			$this->local->process(sprintf(' tar -xvf %s -C %s', Config::getLocalTmpPath("$fromDb.tar.gz"), Config::getLocalTmpPath()))->say();
+		});
+		$outputStyle = new OutputFormatterStyle('green');
+		Console::$output->getFormatter()->setStyle('db', $outputStyle);
+		$this->docker->section("importing  db(<db>$fromDb</db>) to (<db>$db</db>)", function () use ($db, $fromDb, $deleteDumpFiles)
+		{
+			$this->docker->say("droping old $db")->executeMysql('DROP DATABASE IF EXISTS ' . $db)->run();
+			$this->docker->say("creating $db")->executeMysql('CREATE DATABASE ' . $db . ' DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')->run();
+			$structureFile = $this->docker->tmp("$fromDb.structure.sql");
+			$dataFile      = $this->docker->tmp("$fromDb.data.sql");
+			$this->docker->say('mysql importing');
+			$this->docker->sqlFromFile($db, $structureFile)->say();
+			$this->docker->sqlFromFile($db, $dataFile)->say();
+		});
+		if ($deleteDumpFiles) {
+			$this->local->execute(sprintf('rm -f %s', Config::getLocalTmpPath("$fromDb.tar.gz")));
+		}
+	}
+	
 	protected function importToVagrant(string $db, string $fromDb, bool $deleteDumpFiles = false)
 	{
 		$this->local->section("unpacking tar", function () use ($db, $fromDb, $deleteDumpFiles)
 		{
-			$this->local->execute(sprintf(' tar -xvf %s -C %s', $this->local->tmp("$fromDb.tar.gz"), $this->local->tmp()));
+			$this->local->process(sprintf(' tar -xvf %s -C %s', Config::getLocalTmpPath("$fromDb.tar.gz"), Config::getLocalTmpPath()))->say();
 		});
 		$outputStyle = new OutputFormatterStyle('green');
 		Console::$output->getFormatter()->setStyle('db', $outputStyle);
@@ -124,7 +147,7 @@ class Db extends Command
 			]);
 		});
 		if ($deleteDumpFiles) {
-			$this->local->execute(sprintf('rm -f %s', $this->local->tmp("$fromDb.tar.gz")));
+			$this->local->execute(sprintf('rm -f %s', Config::getLocalTmpPath("$fromDb.tar.gz")));
 		}
 	}
 }
