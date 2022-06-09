@@ -51,7 +51,6 @@ class Local extends MachineInstance
 	{
 		$res = [];
 		foreach ((array)$commands as $cmd) {
-			$this->say('execute:::::::::' . $this->makeCommand($cmd));
 			$res[] = system($this->makeCommand($cmd));
 		}
 		
