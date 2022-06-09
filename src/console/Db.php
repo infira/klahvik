@@ -114,6 +114,8 @@ class Db extends Command
 			$this->docker->say('mysql importing');
 			$this->docker->sqlFromFile($db, $structureFile)->say();
 			$this->docker->sqlFromFile($db, $dataFile)->say();
+			$this->local->execute("rm -rf $structureFile");
+			$this->local->execute("rm -rf $dataFile");
 		});
 		if ($deleteDumpFiles) {
 			$this->local->execute(sprintf('rm -f %s', Config::getLocalTmpPath("$fromDb.tar.gz")));
