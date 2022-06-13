@@ -4,7 +4,6 @@ namespace Infira\Klahvik\helper;
 
 use Infira\Klahvik\config\Server as Config;
 use Spatie\Ssh\Ssh;
-use Symfony\Component\Process\Process;
 
 /**
  * @property \Infira\Klahvik\config\Server $config
@@ -19,15 +18,16 @@ class Server extends MachineInstance
 		$this->local = $local;
 	}
 	
-	public function execute($command, callable $outputCallback = null, string $msg = null): Process
+	public function process(string|array $commands): Process
 	{
-		$ssh = Ssh::create($this->config->getUser(), $this->config->getHost(), $this->config->getPort());
-		if ($outputCallback) {
-			$ssh->onOutput(fn($type, $line) => $outputCallback($line));
+		$ssh         = Ssh::create($this->config->getUser(), $this->config->getHost(), $this->config->getPort());
+		$lastProcess = null;
+		foreach ((array)$commands as $command) {
+			$sshCommand  = $ssh->getExecuteCommand($command);
+			$lastProcess = parent::process($sshCommand);
 		}
-		!$msg ?: $this->say($msg);
 		
-		return $ssh->execute($command);
+		return $lastProcess;
 	}
 	
 	/**

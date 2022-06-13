@@ -81,15 +81,15 @@ class Db extends Command
 				
 				$this->remote->upload($dumpBash, $remoteBash);
 				File::delete($dumpBash);
-				$this->remote->runBash($remoteBash, $db . ' "' . $tmpPath . '"');
-				$this->remote->execute("rm -f $remoteBash");
+				$this->remote->process("sh $remoteBash $db $dumpBash")->say();
+				$this->remote->process("rm -f $remoteBash")->say();
 			});
 			$this->local->section("downloading $db", function () use ($db, $tmpPath)
 			{
 				$this->local->rsync($this->remote->getUserHost(), $this->remote->tmp("$db.tar.gz"), Config::getLocalTmpPath());
 			});
 			
-			$this->remote->execute([
+			$this->remote->process([
 				"rm -f " . $this->remote->tmp("$db.structure.sql"),
 				"rm -f " . $this->remote->tmp("$db.data.sql"),
 				"rm -f " . $this->remote->tmp("$db.tar.gz"),
@@ -133,15 +133,15 @@ class Db extends Command
 		$this->vagrant->section("importing  db(<db>$fromDb</db>) to (<db>$db</db>)", function () use ($db, $fromDb, $deleteDumpFiles)
 		{
 			$tmpPath = $this->vagrant->tmp();
-			if (empty(trim($this->vagrant->execute('sudo mysql -e "SHOW DATABASES LIKE \'' . $db . '\'"')->getOutput()))) {
-				$this->vagrant->say("creating $db")->execute('sudo mysql -e "CREATE DATABASE IF NOT EXISTS ' . $db . ' DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"');
+			if (empty(trim($this->vagrant->process('sudo mysql -e "SHOW DATABASES LIKE \'' . $db . '\'"')->getOutput()))) {
+				$this->vagrant->say("creating $db")->process('sudo mysql -e "CREATE DATABASE IF NOT EXISTS ' . $db . ' DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"');
 			}
 			else {
 				$this->vagrant->say("droping local tables")->runKlahvikScript("dropLocalTables.sh", $db . ' "' . $tmpPath . '"');
 			}
 			$structureFile = $this->vagrant->tmp("$fromDb.structure.sql");
 			$dataFile      = $this->vagrant->tmp("$fromDb.data.sql");
-			$this->vagrant->say('mysql importing')->execute([
+			$this->vagrant->say('mysql importing')->process([
 				"sudo mysql $db < $structureFile",
 				"sudo mysql $db < $dataFile",
 				"sudo rm -f $structureFile",

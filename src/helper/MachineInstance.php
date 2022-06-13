@@ -40,30 +40,22 @@ class MachineInstance
 		return $this->config->getTmpPath($path);
 	}
 	
-	public function process(string $command): Process
+	public function process(string|array $commands): Process
 	{
-		$process = Process::fromShellCommandline($this->makeCommand($command));
-		$process->setTimeout(1800);
-		$process->setSpeaker(fn($line) => $this->say($line));
+		$lastProcess = null;
+		foreach ((array)$commands as $command) {
+			$lastProcess = Process::fromShellCommandline($this->makeCommand($command));
+			$lastProcess->setTimeout(1800);
+			$lastProcess->setSpeaker(fn($line) => $this->say($line));
+		}
 		
-		return $process;
-	}
-	
-	public function runBash(string $scriptPath, string $arguments = ''): void
-	{
-		$arguments = $arguments ?: " $arguments";
-		$this->process($scriptPath . $arguments)->run(function ($line)
-		{
-			if (str_contains($line, 'error')) {
-				Console::error($line);
-			}
-			$this->say($line);
-		});
+		return $lastProcess;
 	}
 	
 	public function runKlahvikScript(string $script, string $arguments = ''): void
 	{
-		$this->runBash($this->config->getKlahvikPath("bash/$script"), $arguments);
+		$arguments = $arguments ? " $arguments" : '';
+		$this->process('sh ' . $this->config->getKlahvikPath("bash/$script") . $arguments);
 	}
 	
 	protected function makeCommand(string $command): string { return $command; }
