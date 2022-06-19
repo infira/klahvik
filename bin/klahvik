@@ -5,7 +5,7 @@ use Symfony\Component\Yaml\Yaml;
 use Infira\Klahvik\config\Config;
 use Infira\Klahvik\console\PhpStorm;
 use Infira\Klahvik\console\Db;
-use Infira\Klahvik\console\Data;
+use Infira\Klahvik\console\RSync;
 use Infira\console\Bin;
 use Symfony\Component\Console\Application;
 
@@ -38,9 +38,9 @@ Bin::run('klahvik', function (Application $app, \Infira\console\ConsoleOutput $o
 		if ($phpStorm) {
 			$app->add(new PhpStorm($client->getName()));
 		}
-		$phpStorm = $client->getData();
+		$phpStorm = $client->getRSync();
 		if ($phpStorm) {
-			$app->add(new Data($client->getName()));
+			$app->add(new RSync($client->getName()));
 		}
 	}
 });

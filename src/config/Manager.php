@@ -106,6 +106,12 @@ abstract class Manager
 		return $this->config[$name];
 	}
 	
+	
+	public function exists(string $name): bool
+	{
+		return array_key_exists($name, $this->config);
+	}
+	
 	protected function error(string $key, string $message): void
 	{
 		Error::addDebug('configTrace', $this->instance);

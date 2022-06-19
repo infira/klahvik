@@ -13,7 +13,6 @@ class Client extends Manager
 			'db'     => '\\Infira\Klahvik\config\Db',
 			'server' => '\\Infira\Klahvik\config\Server',
 			'phps'   => '??\\Infira\Klahvik\config\PhpStorm',
-			'data'   => '??\\Infira\Klahvik\config\Data',
 		];
 		parent::__construct('client', $parentInstance, $configConfig, $realConfig);
 	}
@@ -38,8 +37,13 @@ class Client extends Manager
 		return $this->get('phps');
 	}
 	
-	public function getData(): ?Data
+	public function getRSync(): array
 	{
-		return $this->get('data');
+		if (!$this->exists('rsync')) {
+			return [];
+		}
+		$s = $this->get('rsync');
+		
+		return is_array($s) ? $s : [];
 	}
 }

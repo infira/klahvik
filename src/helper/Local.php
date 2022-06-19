@@ -6,6 +6,8 @@ use Infira\Klahvik\config\Machine;
 use Infira\Klahvik\console\Console;
 use Infira\Klahvik\config\Config;
 use Wolo\File\File;
+use Wolo\File\Path;
+use Wolo\Str;
 
 class Local extends MachineInstance
 {
@@ -44,6 +46,11 @@ class Local extends MachineInstance
 	
 	public function rsync(string $server, string $src, string $destination)
 	{
+		$src         = Path::slash($src);
+		$destination = Path::slash($destination);
+		if (!Str::endsWith($src, '*')) {
+			$src .= '*';
+		}
 		$this->process("rsync --timeout=0 -av --progress --del $server:$src $destination")->say();
 	}
 }
