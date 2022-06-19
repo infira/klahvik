@@ -18,18 +18,6 @@ class Server extends MachineInstance
 		$this->local = $local;
 	}
 	
-	public function process(string|array $commands): Process
-	{
-		$ssh         = Ssh::create($this->config->getUser(), $this->config->getHost(), $this->config->getPort());
-		$lastProcess = null;
-		foreach ((array)$commands as $command) {
-			$sshCommand  = $ssh->getExecuteCommand($command);
-			$lastProcess = parent::process($sshCommand);
-		}
-		
-		return $lastProcess;
-	}
-	
 	/**
 	 * @return string - returns user@host
 	 */
@@ -42,5 +30,12 @@ class Server extends MachineInstance
 	{
 		$userHost = $this->getUserHost();
 		$this->local->process("scp $localPath $userHost:$remotePath")->say();
+	}
+	
+	protected function makeCommand(string $command): string
+	{
+		$ssh = Ssh::create($this->config->getUser(), $this->config->getHost(), $this->config->getPort());
+		
+		return $ssh->getExecuteCommand($command);
 	}
 }

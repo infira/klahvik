@@ -46,14 +46,4 @@ class Local extends MachineInstance
 	{
 		$this->process("rsync --timeout=0 -av --progress --del $server:$src $destination")->say();
 	}
-	
-	public function execute(string|array $commands): string
-	{
-		$res = [];
-		foreach ((array)$commands as $cmd) {
-			$res[] = system($this->makeCommand($cmd));
-		}
-		
-		return join("\n", $res);
-	}
 }

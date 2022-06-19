@@ -70,6 +70,7 @@ class Db extends Command
 	{
 		$this->remote->section("downloading $db ", function () use ($db)
 		{
+			$this->local->deleteFile(Config::getLocalTmpPath("$db.tar.gz"));
 			$tmpPath = $this->remote->tmp();
 			$this->remote->section("dumping $db", function () use ($db, $tmpPath)
 			{
@@ -82,18 +83,18 @@ class Db extends Command
 				$this->remote->upload($dumpBash, $remoteBash);
 				File::delete($dumpBash);
 				$this->remote->process("sh $remoteBash $db $dumpBash")->say();
-				$this->remote->process("rm -f $remoteBash")->say();
+				$this->remote->deleteFile($remoteBash);
 			});
 			$this->local->section("downloading $db", function () use ($db, $tmpPath)
 			{
 				$this->local->rsync($this->remote->getUserHost(), $this->remote->tmp("$db.tar.gz"), Config::getLocalTmpPath());
 			});
 			
-			$this->remote->process([
-				"rm -f " . $this->remote->tmp("$db.structure.sql"),
-				"rm -f " . $this->remote->tmp("$db.data.sql"),
-				"rm -f " . $this->remote->tmp("$db.tar.gz"),
-			]);
+			$this->remote->deleteFile(
+				$this->remote->tmp("$db.structure.sql"),
+				$this->remote->tmp("$db.data.sql"),
+				$this->remote->tmp("$db.tar.gz"),
+			);
 		});
 	}
 	
@@ -107,18 +108,17 @@ class Db extends Command
 		Console::$output->getFormatter()->setStyle('db', $outputStyle);
 		$this->docker->section("importing  db(<db>$fromDb</db>) to (<db>$db</db>)", function () use ($db, $fromDb, $deleteDumpFiles)
 		{
-			$this->docker->say("droping old $db")->executeMysql('DROP DATABASE IF EXISTS ' . $db)->run();
-			$this->docker->say("creating $db")->executeMysql('CREATE DATABASE ' . $db . ' DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')->run();
+			$this->docker->say("droping old $db")->executeMysql('DROP DATABASE IF EXISTS ' . $db)->say();
+			$this->docker->say("creating $db")->executeMysql('CREATE DATABASE ' . $db . ' DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')->say();
 			$structureFile = $this->docker->tmp("$fromDb.structure.sql");
 			$dataFile      = $this->docker->tmp("$fromDb.data.sql");
 			$this->docker->say('mysql importing');
 			$this->docker->sqlFromFile($db, $structureFile)->say();
 			$this->docker->sqlFromFile($db, $dataFile)->say();
-			$this->local->execute("rm -rf $structureFile");
-			$this->local->execute("rm -rf $dataFile");
+			$this->local->deleteFile($structureFile, $dataFile);
 		});
 		if ($deleteDumpFiles) {
-			$this->local->execute(sprintf('rm -f %s', Config::getLocalTmpPath("$fromDb.tar.gz")));
+			$this->local->deleteFile(Config::getLocalTmpPath("$fromDb.tar.gz"));
 		}
 	}
 	
@@ -144,9 +144,8 @@ class Db extends Command
 			$this->vagrant->say('mysql importing')->process([
 				"sudo mysql $db < $structureFile",
 				"sudo mysql $db < $dataFile",
-				"sudo rm -f $structureFile",
-				"sudo rm -f $dataFile",
 			]);
+			$this->vagrant->deleteFile($structureFile, $dataFile);
 		});
 		if ($deleteDumpFiles) {
 			$this->local->execute(sprintf('rm -f %s', Config::getLocalTmpPath("$fromDb.tar.gz")));

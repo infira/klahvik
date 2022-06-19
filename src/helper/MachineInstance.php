@@ -5,7 +5,7 @@ namespace Infira\Klahvik\helper;
 use Infira\Klahvik\config\Machine;
 use Infira\Klahvik\console\Console;
 
-class MachineInstance
+abstract class MachineInstance
 {
 	private string $name      = '';
 	private string $sayPrefix = '';
@@ -52,6 +52,16 @@ class MachineInstance
 		return $lastProcess;
 	}
 	
+	protected function runCommand(string|array $commands): string
+	{
+		$res = [];
+		foreach ((array)$commands as $cmd) {
+			$res[] = system($this->makeCommand($cmd));
+		}
+		
+		return join("\n", $res);
+	}
+	
 	public function runKlahvikScript(string $script, string $arguments = ''): void
 	{
 		$arguments = $arguments ? " $arguments" : '';
@@ -59,4 +69,21 @@ class MachineInstance
 	}
 	
 	protected function makeCommand(string $command): string { return $command; }
+	
+	public function execute(string|array $commands): string
+	{
+		$res = [];
+		foreach ((array)$commands as $cmd) {
+			$res[] = system($this->makeCommand($cmd));
+		}
+		
+		return join("\n", $res);
+	}
+	
+	public function deleteFile(string ...$files): void
+	{
+		foreach ($files as $file) {
+			$this->execute("rm -f $file");
+		}
+	}
 }
