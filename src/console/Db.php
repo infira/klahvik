@@ -87,7 +87,7 @@ class Db extends Command
 			});
 			$this->local->section("downloading $db", function () use ($db, $tmpPath)
 			{
-				$this->local->rsync($this->remote->getUserHost(), $this->remote->tmp("$db.tar.gz"), Config::getLocalTmpPath());
+				$this->remote->downloadFile($this->remote->tmp("$db.tar.gz"), Config::getLocalTmpPath());
 			});
 			
 			$this->remote->deleteFile(

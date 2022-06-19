@@ -32,6 +32,16 @@ class Server extends MachineInstance
 		$this->local->process("scp $localPath $userHost:$remotePath")->say();
 	}
 	
+	public function downloadFile(string $file, string $destination)
+	{
+		$this->local->rsync($this->getUserHost(), $file, $destination);
+	}
+	
+	public function downloadFolder(string $folder, string $destination)
+	{
+		$this->local->rsyncFolder($this->getUserHost(), $folder, $destination);
+	}
+	
 	protected function makeCommand(string $command): string
 	{
 		$ssh = Ssh::create($this->config->getUser(), $this->config->getHost(), $this->config->getPort());

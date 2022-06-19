@@ -33,7 +33,7 @@ class RSync extends Command
 			[$source, $dest] = array_map(fn($f) => trim($f), explode(',', $f));
 			$this->local->section("rsync ('$name')", function () use ($source, $dest)
 			{
-				$this->local->say()->rsync($this->remote->getUserHost(), $source, $dest);
+				$this->remote->downloadFolder($source, $dest);
 			});
 		}
 	}

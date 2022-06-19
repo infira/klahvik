@@ -44,13 +44,18 @@ class Local extends MachineInstance
 		return $this->createBash('dumpDb.sh.template', 'dumpDb.sh', $variables);
 	}
 	
-	public function rsync(string $server, string $src, string $destination)
+	public function rsyncFolder(string $server, string $src, string $destination)
 	{
 		$src         = Path::slash($src);
 		$destination = Path::slash($destination);
 		if (!Str::endsWith($src, '*')) {
 			$src .= '*';
 		}
+		$this->rsync($server, $src, $destination);
+	}
+	
+	public function rsync(string $server, string $src, string $destination)
+	{
 		$this->process("rsync --timeout=0 -av --progress --del $server:$src $destination")->say();
 	}
 }
