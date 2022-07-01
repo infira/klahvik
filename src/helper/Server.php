@@ -2,11 +2,11 @@
 
 namespace Infira\Klahvik\helper;
 
-use Infira\Klahvik\config\Server as Config;
+use Infira\Klahvik\config\ServerConfig as Config;
 use Spatie\Ssh\Ssh;
 
 /**
- * @property \Infira\Klahvik\config\Server $config
+ * @property \Infira\Klahvik\config\ServerConfig $config
  */
 class Server extends MachineInstance
 {

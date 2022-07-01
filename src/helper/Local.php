@@ -2,7 +2,7 @@
 
 namespace Infira\Klahvik\helper;
 
-use Infira\Klahvik\config\Machine;
+use Infira\Klahvik\config\MachineConfig;
 use Infira\Klahvik\console\Console;
 use Infira\Klahvik\config\Config;
 use Wolo\File\File;
@@ -11,7 +11,7 @@ use Wolo\Str;
 
 class Local extends MachineInstance
 {
-	public function __construct(string $name, Machine $config)
+	public function __construct(string $name, MachineConfig $config)
 	{
 		parent::__construct($name, $config);
 	}

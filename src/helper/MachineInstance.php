@@ -2,7 +2,7 @@
 
 namespace Infira\Klahvik\helper;
 
-use Infira\Klahvik\config\Machine;
+use Infira\Klahvik\config\MachineConfig;
 use Infira\Klahvik\console\Console;
 
 abstract class MachineInstance
@@ -10,7 +10,7 @@ abstract class MachineInstance
 	private string $name      = '';
 	private string $sayPrefix = '';
 	
-	public function __construct(string $name, protected Machine $config)
+	public function __construct(string $name, protected MachineConfig $config)
 	{
 		$this->name = $name;
 	}

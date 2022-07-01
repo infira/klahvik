@@ -3,7 +3,7 @@
 namespace Infira\Klahvik\helper;
 
 /**
- * @property \Infira\Klahvik\config\Docker $config
+ * @property \Infira\Klahvik\config\DockerConfig $config
  */
 class Docker extends Local
 {

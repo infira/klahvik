@@ -2,7 +2,7 @@
 
 namespace Infira\Klahvik\console;
 
-use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Input\InputArgument;
 
 class RSync extends Command
 {
@@ -11,12 +11,12 @@ class RSync extends Command
 	public function __construct(string $client)
 	{
 		parent::__construct('data', $client);
-		$this->folders = $this->client->getRSync();
+		$this->folders = $this->clientConfig->getRSync();
 	}
 	
 	public function configure(): void
 	{
-		$this->addOption('folder', 'f', InputOption::VALUE_OPTIONAL, 'What folder to sync', 'all');
+		$this->addArgument('folder', InputArgument::OPTIONAL, 'What folder to sync', 'all');
 	}
 	
 	public function runCommand()
@@ -24,15 +24,14 @@ class RSync extends Command
 		if (!$this->folders) {
 			Console::error("task 'rsync' config not defined");
 		}
-		$folder = $this->input->getOption('folder');
+		$folder = $this->input->getArgument('folder');
 		if ($folder !== 'all' and !isset($this->folders[$folder])) {
 			Console::error("Folder('$folder') not defined");
 		}
 		$folders = $folder == 'all' ? $this->folders : [$folder => $this->folders[$folder]];
 		foreach ($folders as $name => $f) {
 			[$source, $dest] = array_map(fn($f) => trim($f), explode(',', $f));
-			$this->local->section("rsync ('$name')", function () use ($source, $dest)
-			{
+			$this->local->section("rsync ('$name')", function () use ($source, $dest) {
 				$this->remote->downloadFolder($source, $dest);
 			});
 		}
