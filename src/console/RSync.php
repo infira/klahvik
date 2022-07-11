@@ -29,11 +29,14 @@ class RSync extends Command
 			Console::error("Folder('$folder') not defined");
 		}
 		$folders = $folder == 'all' ? $this->folders : [$folder => $this->folders[$folder]];
-		foreach ($folders as $name => $f) {
-			[$source, $dest] = array_map(fn($f) => trim($f), explode(',', $f));
-			$this->local->section("rsync ('$name')", function () use ($source, $dest) {
-				$this->remote->downloadFolder($source, $dest);
-			});
+		foreach ($folders as $name => $pathStr) {
+			$branches = is_string($pathStr) ? (array)trim($pathStr) : $pathStr;
+			foreach ($branches as $f) {
+				[$source, $dest] = array_map(fn($f) => trim($f), explode(',', $f));
+				$this->local->section("rsync ('$name')", function () use ($source, $dest) {
+					$this->remote->downloadFolder($source, $dest);
+				});
+			}
 		}
 	}
 }
