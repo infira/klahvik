@@ -72,10 +72,24 @@ class Db extends Command
             $this->local->deleteFile(Config::getLocalTmpPath("$db.tar.gz"));
             $tmpPath = $this->remote->tmp();
             $this->remote->section("dumping $db", function () use ($db, $tmpPath) {
-                $dumpBash = $this->local->createDumpDbBash([
+                $bashVars = [
                     'db' => $db,
                     'tempPath' => $tmpPath,
-                ], $this->config->getVoidDataDumpTables());
+                ];
+                $mysqlArguments = [];
+                if ($user = $this->config->getUser()) {
+                    $mysqlArguments[] = "-u $user";
+                }
+                if ($pass = $this->config->getPass()) {
+                    $mysqlArguments[] = "-p $pass";
+                }
+                if ($host = $this->config->getHost()) {
+                    $mysqlArguments[] = "-h $host";
+                }
+                if ($groupSuffix = $this->config->groupSuffix()) {
+                    $mysqlArguments[] = "--defaults-group-suffix=$groupSuffix";
+                }
+                $dumpBash = $this->local->createDumpDbBash($bashVars, $this->config->getVoidDataDumpTables(), $mysqlArguments);
                 $remoteBash = $this->remote->tmp('dumpDb.sh');
 
                 $this->remote->upload($dumpBash, $remoteBash);

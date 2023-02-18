@@ -8,12 +8,11 @@ while read -r table type; do
   IGNORED_VIEWS_STRING+=" --ignore-table=${db}.${table}"
 done <<<"$lines"
 
-echo mysqldump --add-drop-table --skip-triggers --single-transaction --no-data ${IGNORED_VIEWS_STRING} ${db} > ${db}.structure.sql
-mysqldump --add-drop-table --skip-triggers --single-transaction --no-data ${IGNORED_VIEWS_STRING} ${db} > ${db}.structure.sql
+mysqldump ${mysqlArguments} --add-drop-table --skip-triggers --single-transaction --no-data ${IGNORED_VIEWS_STRING} ${db} > ${db}.structure.sql
 sed -i 's/DEFINER=[^*]*\*/\*/g' "${db}.structure.sql"
 
 echo "Dump ${db} data"
-mysqldump --add-drop-trigger --skip-triggers --no-create-info --lock-tables=false --skip-lock-tables ${IGNORED_VIEWS_STRING} ${IGNORE_DATA_TABLE_STRING} ${db} > ${db}.data.sql
+mysqldump ${mysqlArguments} --add-drop-trigger --skip-triggers --no-create-info --lock-tables=false --skip-lock-tables ${IGNORED_VIEWS_STRING} ${IGNORE_DATA_TABLE_STRING} ${db} > ${db}.data.sql
 sed -i 's/DEFINER=[^*]*\*/\*/g' "${db}.data.sql"
 
 echo "tar ${db}.tar.gz data"
