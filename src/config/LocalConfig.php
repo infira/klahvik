@@ -2,7 +2,7 @@
 
 namespace Infira\Klahvik\config;
 
-use Infira\Klahvik\console\Console;
+use Infira\Console\Console;
 
 class LocalConfig extends MachineConfig
 {

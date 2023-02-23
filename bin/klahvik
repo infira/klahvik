@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-use Infira\console\Bin;
+use Infira\Console\Bin;
 use Infira\Klahvik\config\Config;
 use Infira\Klahvik\console\Db;
 use Infira\Klahvik\console\PhpStorm;
@@ -23,8 +23,8 @@ function br2nl(string $str)
 
 define("KLAHVIK_PATH", realpath(__DIR__ . '/../') . '/');
 
-Bin::init(realpath(__DIR__));
-Bin::run('klahvik', function (Application $app, \Infira\console\ConsoleOutput $output) {
+Bin::init();
+Bin::run('klahvik', function (Application $app, \Infira\Console\Output\ConsoleOutput $output) {
 	$configFile = \Wolo\File\Path::join($_SERVER['HOME'], 'ws/dotfiles/.klahvik.yaml');
 	if (!file_exists($configFile)) {
 		throw new Exception("klahvik config file('$configFile') does not exists");

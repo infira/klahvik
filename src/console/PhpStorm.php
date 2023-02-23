@@ -3,6 +3,7 @@
 namespace Infira\Klahvik\console;
 
 
+use Infira\Console\Console;
 use Infira\Klahvik\config\PhpStormConfig;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
@@ -19,7 +20,7 @@ class PhpStorm extends Command
 	{
 		parent::__construct('storm', $client);
 	}
-	
+
 	public function configure(): void
 	{
 		parent::configure();
@@ -27,7 +28,7 @@ class PhpStorm extends Command
 		$this->addOption('branch', 'b', InputOption::VALUE_OPTIONAL, 'Into what branch', 'master');
 		$this->addOption('folderName', 'f', InputOption::VALUE_OPTIONAL);
 	}
-	
+
 	public function runCommand()
 	{
 		$project      = $this->input->getArgument('project') ?: $this->clientConfig->storm()->getString('defaultProject');
@@ -39,26 +40,26 @@ class PhpStorm extends Command
 		if (is_dir($clonePath)) {
 			Console::error("Clonepath('$clonePath') already exists");
 		}
-		
-		$this->local->section("cloing $branch", function () use ($gitUrl, $branch, $clonePath) {
-			$this->local->process("git clone --progress --branch $branch $gitUrl $clonePath")->say();
+
+		$this->local->task("cloing $branch", function () use ($gitUrl, $branch, $clonePath) {
+			$this->local->process("git clone --progress --branch $branch $gitUrl $clonePath")->speak();
 		});
-		
+
 		Folder::make($this->clonePath('.idea'));
 		$this->copyFolder($this->config->getIdeConfigPath(), $this->clonePath('.idea'));
 		File::put($this->clonePath('.idea/.name'), "$project-" . strtoupper($folderName));
-		
+
 		//install composer
 		$composerJson = realpath($this->clonePath($this->config->getComposerJson()));
 		if (file_exists($composerJson)) {
-			$this->local->section("installing composer", function () use ($composerJson) {
+			$this->local->task("installing composer", function () use ($composerJson) {
 				$path = dirname($composerJson);
-				$this->local->process("cd $path && " . $this->config->getComposer() . " install")->say();
+				$this->local->process("cd $path && " . $this->config->getComposer() . " install")->speak();
 			});
 		}
-		
+
 	}
-	
+
 	private function copyFolder(string $source, string $target)
 	{
 		collect(Folder::content($source))
@@ -73,17 +74,17 @@ class PhpStorm extends Command
 				}
 			});
 	}
-	
+
 	private function getFolderName()
 	{
 		$branch = $this->input->getOption('branch');
-		
+
 		return $this->input->getOption('folderName') ?: $branch;
 	}
-	
+
 	private function clonePath(string $path = ''): string
 	{
 		return $this->config->getClonePath(Path::join($this->getFolderName(), $path));
 	}
-	
+
 }

@@ -1,24 +1,26 @@
 {
   "name": "infira/klahvik",
   "authors": [
-	{
-	  "name": "Gen Taliar",
-	  "email": "gen@infira.ee"
-	}
+    {
+      "name": "Gen Taliar",
+      "email": "gen@infira.ee"
+    }
   ],
   "autoload": {
-	"psr-4": {
-	  "Infira\\Klahvik\\": "src/"
-	}
+    "psr-4": {
+      "Infira\\Klahvik\\": "src/"
+    }
   },
   "minimum-stability": "dev",
   "bin": [
-	"bin/klahvik"
+    "bin/klahvik"
   ],
   "require": {
-	"php": ">=8.0.2",
-	"infira/console": "dev-main",
-	"spatie/ssh": "1.*",
-    "symfony/filesystem": "6.1.x-dev"
+    "php": ">=8.0.2",
+    "infira/console": "dev-main",
+    "symfony/yaml": "v6.2.5",
+    "spatie/ssh": "1.*",
+    "symfony/filesystem": "6.1.x-dev",
+    "illuminate/support": "~v9"
   }
 }

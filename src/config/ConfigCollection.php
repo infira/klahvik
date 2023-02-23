@@ -3,7 +3,7 @@
 namespace Infira\Klahvik\config;
 
 use Illuminate\Support\Collection;
-use Infira\Klahvik\console\Console;
+use Infira\Console\Console;
 use Wolo\File\Path;
 
 class ConfigCollection extends Collection
