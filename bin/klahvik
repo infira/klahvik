@@ -2,38 +2,48 @@
 <?php
 
 use Infira\Console\Bin;
+use Infira\Console\Output\ConsoleOutput;
 use Infira\Klahvik\config\Config;
+use Infira\Klahvik\console\Console;
 use Infira\Klahvik\console\Db;
 use Infira\Klahvik\console\PhpStorm;
 use Infira\Klahvik\console\RSync;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Yaml\Yaml;
+use Wolo\File\Path;
 
-if (file_exists(__DIR__ . '/../../../autoload.php')) {
-	require __DIR__ . '/../../../autoload.php';
+if (file_exists(__DIR__.'/../../../autoload.php')) {
+    require __DIR__.'/../../../autoload.php';
 }
 else {
-	require __DIR__ . '/../vendor/autoload.php';
+    require __DIR__.'/../vendor/autoload.php';
 }
 
 function br2nl(string $str)
 {
-	return str_replace(['<br />', '<br>', '< br>'], "\n", $str);
+    return str_replace(['<br />', '<br>', '< br>'], "\n", $str);
 }
 
-define("KLAHVIK_PATH", realpath(__DIR__ . '/../') . '/');
+define("KLAHVIK_PATH", realpath(__DIR__.'/../').'/');
 
-Bin::init();
-Bin::run('klahvik', function (Application $app, \Infira\Console\Output\ConsoleOutput $output) {
-	$configFile = \Wolo\File\Path::join($_SERVER['HOME'], 'ws/dotfiles/.klahvik.yaml');
-	if (!file_exists($configFile)) {
-		throw new Exception("klahvik config file('$configFile') does not exists");
-	}
-	Config::set(Yaml::parseFile($configFile));
+Bin::init([
+        'traceFormatter' => static function (array $trace) {
+            $file = $trace['file'] ?? '';
+            $line = $trace['line'] ?? '';
 
-	foreach (Config::getClientNames() as $name) {
-		$app->add(new Db($name));
-		$app->add(new PhpStorm($name));
-		$app->add(new RSync($name));
-	}
+            return "<href=phpstorm://open?file=$file&line=$line>$file:$line</>";
+        }
+]);
+Bin::run('klahvik', function (Application $app, ConsoleOutput $output) {
+    $configFile = Path::join($_SERVER['HOME'], 'ws/dotfiles/.klahvik.yaml');
+    if (!file_exists($configFile)) {
+        Console::error("klahvik config file('$configFile') does not exists");
+    }
+    Config::set(Yaml::parseFile($configFile));
+
+    foreach (Config::getClientNames() as $name) {
+        $app->add(new Db($name));
+        $app->add(new PhpStorm($name));
+        $app->add(new RSync($name));
+    }
 });
