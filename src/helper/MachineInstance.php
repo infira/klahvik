@@ -6,11 +6,11 @@ use Infira\Console\Output\ConsoleOutput;
 use Infira\Console\Process;
 use Infira\Console\Utils;
 use Infira\Klahvik\config\MachineConfig;
+use Wolo\File\File;
 
 abstract class MachineInstance
 {
     private string $name;
-    private string $sayPrefix = '';
 
     public function __construct(string $name, protected MachineConfig $config, protected ConsoleOutput $console)
     {
@@ -24,14 +24,11 @@ abstract class MachineInstance
 
     public function process(string|array $commands): Process
     {
-        $lastProcess = null;
-        foreach ((array)$commands as $command) {
-            $lastProcess = Process::fromShellCommandline($this->makeCommand($command));
-            $lastProcess->setTimeout(1800);
-            $lastProcess->setSpeaker(fn($line, $task = null) => $this->sayProcess($line, $task));
-        }
+        $process = Process::fromShellCommandline($this->getExecuteCommand($commands));
+        $process->setTimeout(1800);
+        $process->setSpeaker(fn($line, $task = null) => $this->sayProcess($line, $task));
 
-        return $lastProcess;
+        return $process;
     }
 
     public function sayProcess(string $processLines = '', string $task = null): static
@@ -50,28 +47,10 @@ abstract class MachineInstance
         return $this->config->getTmpPath($path);
     }
 
-    public function runKlahvikScript(string $script, string $arguments = ''): void
-    {
-        $arguments = $arguments ? " $arguments" : '';
-        $this->process('sh '.$this->config->getKlahvikPath("bash/$script").$arguments);
-    }
-
-    protected function makeCommand(string $command): string { return $command; }
-
-    public function execute(string|array $commands): string
-    {
-        $res = [];
-        foreach ((array)$commands as $cmd) {
-            $res[] = system($this->makeCommand($cmd));
-        }
-
-        return join("\n", $res);
-    }
+    abstract protected function getExecuteCommand(string $command): string;
 
     public function deleteFile(string ...$files): void
     {
-        foreach ($files as $file) {
-            $this->execute("rm -f $file");
-        }
+        File::removeIfExists($files);
     }
 }

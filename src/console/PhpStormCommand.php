@@ -14,7 +14,7 @@ use Wolo\File\Path;
 /**
  * @property PhpStormConfig $config;
  */
-class PhpStorm extends Command
+class PhpStormCommand extends Command
 {
 	public function __construct(?string $client)
 	{

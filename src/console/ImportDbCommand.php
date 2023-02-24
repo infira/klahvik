@@ -6,6 +6,7 @@ namespace Infira\Klahvik\console;
 use Infira\Console\Console;
 use Infira\Klahvik\config\Config;
 use Infira\Klahvik\config\DbConfig;
+use Infira\Klahvik\config\Models\DbProject;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Wolo\File\File;
@@ -13,7 +14,7 @@ use Wolo\File\File;
 /**
  * @property DbConfig $config;
  */
-class Db extends Command
+class ImportDbCommand extends Command
 {
     public function __construct(string $client)
     {
@@ -26,47 +27,35 @@ class Db extends Command
         $this->addArgument('project', InputArgument::OPTIONAL, 'What project to download', 'all');
         $this->addOption('localDb', 'l', InputOption::VALUE_OPTIONAL, 'local db name', null);
         $this->addOption('branch', 'b', InputOption::VALUE_OPTIONAL, 'Into what branch', 'master');
-        $this->addOption('force', 'f');
+        $this->addOption('force', 'f', InputOption::VALUE_NONE);
         $this->addOption('del');
     }
 
     public function runCommand(): void
     {
-        $projects = $this->input->getArgument('project');
-        $branch = $this->input->getOption('branch');
-        foreach (explode(',', $projects) as $project) {
-            if (!$this->config->projectExists($project)) {
-                Console::error("project project('$project') not found");
-            }
-
-            $loop = $project === 'all' ? $this->config->getProjectNames() : [$project];
+        foreach (explode(',', $this->input->getArgument('project')) as $argProject) {
+            $loop = $argProject === 'all' ? $this->config->getProjectNames() : [$argProject];
             foreach ($loop as $lProject) {
-                $this->import($lProject, $branch);
+                $project = $this->config->project($lProject);
+                Console::region("importing project('$project')", function () use ($project) {
+                    $this->downloadRemoteDb($project);
+                    $this->importToDocker($project);
+                    $this->runTasks($project);
+                });
                 Console::nl();
             }
         }
     }
 
-    private function import(string $project, string $branch): void
+    protected function downloadRemoteDb(DbProject $project): void
     {
-        $forceDownload = $this->input->getOption('force');
-        $deleteLocalDump = $this->input->getOption('del');
+        $db = $project->db->toString();
+        $structurePath = Config::getLocalTmpPath("$db.tar.gz");
+        if (file_exists($structurePath) && !$this->input->getOption('force')) {
+            return;
+        }
 
-        $localDB = $this->input->getOption('localDb') ?: $this->config->getLocalName($branch, $project);
-        $liveDB = $this->config->getRemoteName($project);
-
-        Console::region("importing project('$project')", function () use ($deleteLocalDump, $forceDownload, $localDB, $liveDB) {
-            $structurePath = Config::getLocalTmpPath("$liveDB.tar.gz");
-            if (!file_exists($structurePath) or $forceDownload) {
-                $this->downloadRemoteDb($liveDB);
-            }
-            $this->importToDocker($localDB, $liveDB, $deleteLocalDump);
-        });
-    }
-
-    protected function downloadRemoteDb(string $db): void
-    {
-        $this->remote->task("fetching databse <comment>$db</comment> from server", function () use ($db) {
+        $this->remote->task("fetching databaase <comment>$db</comment> from server", function () use ($db) {
             $this->local->deleteFile(Config::getLocalTmpPath("$db.tar.gz"));
             $tmpPath = $this->remote->tmpPath();
             $bashVars = [
@@ -109,8 +98,13 @@ class Db extends Command
         });
     }
 
-    protected function importToDocker(string $db, string $fromDb, bool $deleteDumpFiles = false): void
+    protected function importToDocker(DbProject $project): void
     {
+        $deleteDumpFiles = $this->input->getOption('del');
+        $fromDb = $project->db->toString();
+        $branch = $this->input->getOption('branch');
+        $db = $this->input->getOption('localDb') ?: $this->config->getLocalName($branch, $project);
+
         $this->local->task("importing to docker", function () use ($db, $fromDb, $deleteDumpFiles) {
             $this->local->process(
                 sprintf(
@@ -130,6 +124,21 @@ class Db extends Command
             if ($deleteDumpFiles) {
                 $this->local->deleteFile(Config::getLocalTmpPath("$fromDb.tar.gz"));
             }
+        });
+    }
+
+    private function runTasks(DbProject $project): void
+    {
+        $tasks = $project->tasks();
+        if ($tasks->isEmpty()) {
+            return;
+        }
+        $tasks->each(function (string $task) use ($project) {
+            Console::miniRegion(
+                "running project($project) task($task)",
+                fn() => $this->local->process($task)->speak(),
+                20
+            );
         });
     }
 }

@@ -5,11 +5,12 @@ namespace Infira\Klahvik\helper;
 use Infira\Console\Output\ConsoleOutput;
 use Infira\Console\Process;
 use Infira\Klahvik\config\Config;
+use Infira\Klahvik\config\DockerConfig;
 
 /**
- * @property \Infira\Klahvik\config\DockerConfig $config
+ * @property DockerConfig $config
  */
-class Docker extends Local
+class DockerMachine extends LocalHost
 {
     public function __construct(ConsoleOutput $console)
     {
@@ -26,8 +27,15 @@ class Docker extends Local
         return $this->process(sprintf('mysql -uroot -p%s %s < %s', $this->config->getRootPassword(), $db, $file));
     }
 
-    protected function makeCommand(string $command): string
+    protected function getExecuteCommand(string|array $command): string
     {
-        return sprintf('docker exec -i %s %s', $this->config->getImage(), $command);
+        $commandString = implode(PHP_EOL, (array)$command);
+        $delimiter = 'EOF-KLAHVIK-LOCAL-CMD';
+
+        $image = $this->config->getImage();
+
+        return "docker exec -i $image << $delimiter".PHP_EOL
+            .$commandString.PHP_EOL
+            .$delimiter;
     }
 }

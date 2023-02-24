@@ -2,6 +2,9 @@
 
 namespace Infira\Klahvik\config;
 
+use Illuminate\Config\Repository;
+use Infira\Klahvik\config\Models\DbProject;
+
 class DbConfig extends ConfigCollection
 {
     public function getLocalName(string $branch, string $project): string
@@ -54,25 +57,32 @@ class DbConfig extends ConfigCollection
         return array_keys($this->getArray('projects'));
     }
 
-    public function projectExists(string $project): bool
+    public function project(string $project): DbProject
     {
-        return $project == 'all' || isset($this->getArray('projects')[$project]);
-    }
-
-    public function getRemoteName(string $project): string
-    {
-        $projects = $this->getArray('projects');
-        if (!isset($projects[$project])) {
+        $projects = new Repository($this->getArray('projects'));
+        if (!$projects->has($project)) {
             $this->error('projects', "project('$project') does not exist");
         }
 
-        return $projects[$project];
+        $arr = [
+            'name' => $project,
+            'db' => null,
+            'tasks' => []
+        ];
+        if (is_string($projects[$project])) {
+            $arr ['db'] = $projects[$project];
+        }
+        else {
+            $arr = array_merge($arr, $projects[$project]);
+        }
+
+        return new DbProject($arr);
     }
 
     public function getVoidDataDumpTables(): array
     {
         $tables = $this->getArray('voidDataDumpTables');
-        array_walk($tables, fn($table) => trim($table));
+        array_walk($tables, static fn($table) => trim($table));
 
         return $tables;
     }

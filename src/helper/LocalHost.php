@@ -9,7 +9,7 @@ use Wolo\File\File;
 use Wolo\File\Path;
 use Wolo\Str;
 
-class Local extends MachineInstance
+class LocalHost extends MachineInstance
 {
     public function createBash(string $templateFileName, string $bashFileName, array $variables): string
     {
@@ -55,5 +55,15 @@ class Local extends MachineInstance
     public function rsync(string $server, string $src, string $destination): Process
     {
         return $this->process("rsync --timeout=0 -av --progress --del $server:$src $destination");
+    }
+
+    protected function getExecuteCommand(string|array $command): string
+    {
+        $commandString = implode(PHP_EOL, (array)$command);
+        $delimiter = 'EOF-KLAHVIK-LOCAL-CMD';
+
+        return "sh << $delimiter".PHP_EOL
+            .$commandString.PHP_EOL
+            .$delimiter;
     }
 }

@@ -9,9 +9,9 @@ use Spatie\Ssh\Ssh;
 /**
  * @property \Infira\Klahvik\config\ServerConfig $config
  */
-class Server extends MachineInstance
+class RemoteServer extends MachineInstance
 {
-    public function __construct(Config $config, private Local $local, \Infira\Console\Output\ConsoleOutput $console)
+    public function __construct(Config $config, private LocalHost $local, \Infira\Console\Output\ConsoleOutput $console)
     {
         parent::__construct($config->getHost(), $config, $console);
     }
@@ -27,6 +27,7 @@ class Server extends MachineInstance
     public function uploadProcess(string $localPath, string $remotePath): Process
     {
         $userHost = $this->getUserHost();
+
         return $this->local->process("scp $localPath $userHost:$remotePath");
     }
 
@@ -40,7 +41,7 @@ class Server extends MachineInstance
         return $this->local->rsyncFolderProcess($this->getUserHost(), $folder, $destination);
     }
 
-    protected function makeCommand(string $command): string
+    protected function getExecuteCommand(string $command): string
     {
         $ssh = Ssh::create($this->config->getUser(), $this->config->getHost(), $this->config->getPort());
 

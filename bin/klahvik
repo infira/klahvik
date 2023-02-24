@@ -2,12 +2,11 @@
 <?php
 
 use Infira\Console\Bin;
-use Infira\Console\Output\ConsoleOutput;
 use Infira\Klahvik\config\Config;
 use Infira\Klahvik\console\Console;
-use Infira\Klahvik\console\Db;
-use Infira\Klahvik\console\PhpStorm;
-use Infira\Klahvik\console\RSync;
+use Infira\Klahvik\console\ImportDbCommand;
+use Infira\Klahvik\console\PhpStormCommand;
+use Infira\Klahvik\console\RSyncCommand;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Yaml\Yaml;
 use Wolo\File\Path;
@@ -18,12 +17,6 @@ if (file_exists(__DIR__.'/../../../autoload.php')) {
 else {
     require __DIR__.'/../vendor/autoload.php';
 }
-
-function br2nl(string $str)
-{
-    return str_replace(['<br />', '<br>', '< br>'], "\n", $str);
-}
-
 define("KLAHVIK_PATH", realpath(__DIR__.'/../').'/');
 
 Bin::init([
@@ -34,7 +27,7 @@ Bin::init([
             return "<href=phpstorm://open?file=$file&line=$line>$file:$line</>";
         }
 ]);
-Bin::run('klahvik', function (Application $app, ConsoleOutput $output) {
+Bin::run('klahvik', static function (Application $app) {
     $configFile = Path::join($_SERVER['HOME'], 'ws/dotfiles/.klahvik.yaml');
     if (!file_exists($configFile)) {
         Console::error("klahvik config file('$configFile') does not exists");
@@ -42,8 +35,8 @@ Bin::run('klahvik', function (Application $app, ConsoleOutput $output) {
     Config::set(Yaml::parseFile($configFile));
 
     foreach (Config::getClientNames() as $name) {
-        $app->add(new Db($name));
-        $app->add(new PhpStorm($name));
-        $app->add(new RSync($name));
+        $app->add(new ImportDbCommand($name));
+        $app->add(new PhpStormCommand($name));
+        $app->add(new RSyncCommand($name));
     }
 });

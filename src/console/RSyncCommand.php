@@ -5,7 +5,7 @@ namespace Infira\Klahvik\console;
 use Infira\Console\Console;
 use Symfony\Component\Console\Input\InputArgument;
 
-class RSync extends Command
+class RSyncCommand extends Command
 {
     private array $folders;
 
