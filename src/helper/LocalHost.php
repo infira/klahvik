@@ -4,14 +4,14 @@ namespace Infira\Klahvik\helper;
 
 use Infira\Console\Console;
 use Infira\Console\Process;
-use Infira\Klahvik\config\Config;
 use Wolo\File\File;
+use Wolo\File\FileHandler;
 use Wolo\File\Path;
 use Wolo\Str;
 
 class LocalHost extends MachineInstance
 {
-    public function createBash(string $templateFileName, string $bashFileName, array $variables): string
+    public function createBash(string $templateFileName, string $bashFileName, array $variables): FileHandler
     {
         $tmpl = KLAHVIK_PATH.'src/bashTemplates/'.$templateFileName;
         if (!file_exists($tmpl)) {
@@ -21,24 +21,12 @@ class LocalHost extends MachineInstance
         foreach ($variables as $name => $value) {
             $content = str_replace('${'.$name.'}', $value, $content);
         }
-        $bash = Config::getLocalTmpPath($bashFileName);
-        File::removeIfExists($bash);
-        File::put($bash, $content);
 
-        return $bash;
-    }
+        $bashFile = $this->tmpFile($bashFileName);
+        $bashFile->removeIfExists();
+        $bashFile->put($content);
 
-    public function createDumpDbBash(array $variables, array $ignoreTables, $mysqlArguments = []): string
-    {
-        $variables['IGNORE_DATA_TABLE_STRING'] = [];
-        foreach ($ignoreTables as $table) {
-            $variables['IGNORE_DATA_TABLE_STRING'][] = '--ignore-table="'.$variables['db'].'.'.$table.'"';
-        }
-        $variables['IGNORE_DATA_TABLE_STRING'] = implode(' ', $variables['IGNORE_DATA_TABLE_STRING']);
-
-        $variables['mysqlArguments'] = implode(' ', $mysqlArguments);
-
-        return $this->createBash('dumpDb.sh.template', 'dumpDb.sh', $variables);
+        return $bashFile;
     }
 
     public function rsyncFolderProcess(string $server, string $src, string $destination): Process
@@ -65,5 +53,10 @@ class LocalHost extends MachineInstance
         return "sh << $delimiter".PHP_EOL
             .$commandString.PHP_EOL
             .$delimiter;
+    }
+
+    public function deleteFile(string ...$files): void
+    {
+        File::removeIfExists($files);
     }
 }

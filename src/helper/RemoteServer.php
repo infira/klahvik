@@ -5,6 +5,7 @@ namespace Infira\Klahvik\helper;
 use Infira\Console\Process;
 use Infira\Klahvik\config\ServerConfig as Config;
 use Spatie\Ssh\Ssh;
+use Wolo\File\FileHandler;
 
 /**
  * @property \Infira\Klahvik\config\ServerConfig $config
@@ -24,16 +25,14 @@ class RemoteServer extends MachineInstance
         return sprintf("%s@%s", $this->config->getUser(), $this->config->getHost());
     }
 
-    public function uploadProcess(string $localPath, string $remotePath): Process
+    public function uploadProcess(string|FileHandler $source, string|FileHandler $remotePath): Process
     {
-        $userHost = $this->getUserHost();
-
-        return $this->local->process("scp $localPath $userHost:$remotePath");
+        return $this->local->process($this->ssh()->getUploadCommand((string)$source, (string)$remotePath));
     }
 
-    public function downloadFileProcess(string $file, string $destination): Process
+    public function downloadFileProcess(string|FileHandler $file, string|FileHandler $destination): Process
     {
-        return $this->local->rsync($this->getUserHost(), $file, $destination);
+        return $this->local->rsync($this->getUserHost(), (string)$file, (string)$destination);
     }
 
     public function downloadFolderProcess(string $folder, string $destination): Process
@@ -41,10 +40,13 @@ class RemoteServer extends MachineInstance
         return $this->local->rsyncFolderProcess($this->getUserHost(), $folder, $destination);
     }
 
+    protected function ssh(): Ssh
+    {
+        return Ssh::create($this->config->getUser(), $this->config->getHost(), $this->config->getPort());
+    }
+
     protected function getExecuteCommand(string $command): string
     {
-        $ssh = Ssh::create($this->config->getUser(), $this->config->getHost(), $this->config->getPort());
-
-        return $ssh->getExecuteCommand($command);
+        return $this->ssh()->getExecuteCommand($command);
     }
 }

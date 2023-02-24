@@ -2,8 +2,6 @@
 
 namespace Infira\Klahvik\config;
 
-use Wolo\File\Path;
-
 class Config
 {
     private static ConfigCollection $config;
@@ -11,11 +9,6 @@ class Config
     public static function set(array $realConfig): void
     {
         self::$config = new ConfigCollection($realConfig);
-    }
-
-    public static function getLocalTmpPath(string $path = ''): string
-    {
-        return Path::join(self::$config->getPath('localTmpPath'), $path);
     }
 
     public static function getComposer(): string

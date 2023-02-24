@@ -10,6 +10,7 @@ use Infira\Klahvik\config\Models\DbProject;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Wolo\File\File;
+use Wolo\File\FileHandler;
 
 /**
  * @property DbConfig $config;
@@ -24,7 +25,7 @@ class ImportDbCommand extends Command
 
     public function configure(): void
     {
-        $this->addArgument('project', InputArgument::IS_ARRAY, 'What project to download', $this->config->getProjectNames());
+        $this->addArgument('project', InputArgument::IS_ARRAY, 'What project to download', ['all']);
         $this->addOption('localDb', 'l', InputOption::VALUE_OPTIONAL, 'local db name', null);
         $this->addOption('branch', 'b', InputOption::VALUE_OPTIONAL, 'Into what branch', 'master');
         $this->addOption('force', 'f', InputOption::VALUE_NONE);
@@ -33,7 +34,9 @@ class ImportDbCommand extends Command
 
     public function runCommand(): void
     {
-        foreach ($this->input->getArgument('project') as $argProject) {
+        $projects = $this->input->getArgument('project');
+        $projects = $projects[0] === 'all' ? $this->config->getProjectNames() : $projects;
+        foreach ($projects as $argProject) {
             $project = $this->config->project($argProject);
             Console::region("importing project('$project')", function () use ($project) {
                 $this->downloadRemoteDb($project);
@@ -47,13 +50,12 @@ class ImportDbCommand extends Command
     protected function downloadRemoteDb(DbProject $project): void
     {
         $db = $project->db->toString();
-        $structurePath = Config::getLocalTmpPath("$db.tar.gz");
-        if (file_exists($structurePath) && !$this->input->getOption('force')) {
+        $tarFile = $this->local->tmpFile("$db.tar.gz");
+        if (!$this->input->getOption('force') && $tarFile->exists()) {
             return;
         }
-
-        $this->remote->task("fetching databaase <comment>$db</comment> from server", function () use ($db) {
-            $this->local->deleteFile(Config::getLocalTmpPath("$db.tar.gz"));
+        $this->remote->task("fetching databaase <comment>$db</comment> from server", function () use ($db, $tarFile) {
+            $tarFile->removeIfExists();
             $tmpPath = $this->remote->tmpPath();
             $bashVars = [
                 'db' => $db,
@@ -72,11 +74,12 @@ class ImportDbCommand extends Command
             if ($groupSuffix = $this->config->groupSuffix()) {
                 $mysqlArguments[] = "--defaults-group-suffix=$groupSuffix";
             }
-            $dumpBash = $this->local->createDumpDbBash($bashVars, $this->config->getVoidDataDumpTables(), $mysqlArguments);
+            $dumpBash = $this->createDumpDbBash($bashVars, $this->config->getVoidDataDumpTables(), $mysqlArguments);
             $remoteBash = $this->remote->tmpPath('dumpDb.sh');
 
             $this->remote->uploadProcess($dumpBash, $remoteBash)->speak('uploading bash file');
-            File::removeIfExists($dumpBash);
+            debug($remoteBash);exit;
+            $dumpBash->remove();
             $this->remote->process("sh $remoteBash $db $dumpBash")->speak("dumping database");
             $this->remote->deleteFile($remoteBash);
 
@@ -137,5 +140,18 @@ class ImportDbCommand extends Command
                 20
             );
         });
+    }
+
+    public function createDumpDbBash(array $variables, array $ignoreTables, $mysqlArguments = []): FileHandler
+    {
+        $variables['IGNORE_DATA_TABLE_STRING'] = [];
+        foreach ($ignoreTables as $table) {
+            $variables['IGNORE_DATA_TABLE_STRING'][] = '--ignore-table="'.$variables['db'].'.'.$table.'"';
+        }
+        $variables['IGNORE_DATA_TABLE_STRING'] = implode(' ', $variables['IGNORE_DATA_TABLE_STRING']);
+
+        $variables['mysqlArguments'] = implode(' ', $mysqlArguments);
+
+        return $this->local->createBash('dumpDb.sh.template', 'dumpDb.sh', $variables);
     }
 }

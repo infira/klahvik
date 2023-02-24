@@ -6,7 +6,7 @@ use Infira\Console\Output\ConsoleOutput;
 use Infira\Console\Process;
 use Infira\Console\Utils;
 use Infira\Klahvik\config\MachineConfig;
-use Wolo\File\File;
+use Wolo\File\FileHandler;
 
 abstract class MachineInstance
 {
@@ -42,15 +42,32 @@ abstract class MachineInstance
         return $this;
     }
 
-    public function tmpPath(string $path = ''): string
+    public function tmpPath(string ...$path): string
     {
-        return $this->config->getTmpPath($path);
+        return $this->config->getTmpPath(...$path);
+    }
+
+    public function tmpFile(string ...$path): FileHandler
+    {
+        return new FileHandler($this->tmpPath(...$path));
     }
 
     abstract protected function getExecuteCommand(string $command): string;
 
+    public function execute(string|array $commands): string
+    {
+        $res = [];
+        foreach ((array)$commands as $cmd) {
+            $res[] = system($this->makeCommand($cmd));
+        }
+
+        return join("\n", $res);
+    }
+
     public function deleteFile(string ...$files): void
     {
-        File::removeIfExists($files);
+        foreach ($files as $file) {
+            $this->execute("rm -f $file");
+        }
     }
 }
