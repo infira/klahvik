@@ -24,7 +24,7 @@ class ImportDbCommand extends Command
 
     public function configure(): void
     {
-        $this->addArgument('project', InputArgument::OPTIONAL, 'What project to download', 'all');
+        $this->addArgument('project', InputArgument::IS_ARRAY, 'What project to download', $this->config->getProjectNames());
         $this->addOption('localDb', 'l', InputOption::VALUE_OPTIONAL, 'local db name', null);
         $this->addOption('branch', 'b', InputOption::VALUE_OPTIONAL, 'Into what branch', 'master');
         $this->addOption('force', 'f', InputOption::VALUE_NONE);
@@ -33,17 +33,14 @@ class ImportDbCommand extends Command
 
     public function runCommand(): void
     {
-        foreach (explode(',', $this->input->getArgument('project')) as $argProject) {
-            $loop = $argProject === 'all' ? $this->config->getProjectNames() : [$argProject];
-            foreach ($loop as $lProject) {
-                $project = $this->config->project($lProject);
-                Console::region("importing project('$project')", function () use ($project) {
-                    $this->downloadRemoteDb($project);
-                    $this->importToDocker($project);
-                    $this->runTasks($project);
-                });
-                Console::nl();
-            }
+        foreach ($this->input->getArgument('project') as $argProject) {
+            $project = $this->config->project($argProject);
+            Console::region("importing project('$project')", function () use ($project) {
+                $this->downloadRemoteDb($project);
+                $this->importToDocker($project);
+                $this->runTasks($project);
+            });
+            Console::nl();
         }
     }
 
