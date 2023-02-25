@@ -21,11 +21,6 @@ class Config
         return self::$config->getArray('db');
     }
 
-    public static function getVagrant(): ServerConfig
-    {
-        return self::$config->collection('vagrant', ServerConfig::class);
-    }
-
     public static function getDocker(): DockerConfig
     {
         return self::$config->collection('docker', DockerConfig::class);

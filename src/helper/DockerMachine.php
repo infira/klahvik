@@ -6,6 +6,7 @@ use Infira\Console\Output\ConsoleOutput;
 use Infira\Console\Process;
 use Infira\Klahvik\config\Config;
 use Infira\Klahvik\config\DockerConfig;
+use Wolo\File\FileHandler;
 
 /**
  * @property DockerConfig $config
@@ -17,25 +18,39 @@ class DockerMachine extends LocalHost
         parent::__construct('docker', Config::getDocker(), $console);
     }
 
-    final public function executeMysql(string $command): Process
+    private function prepareMysqlCommand(string $extra = ''): string
     {
-        return $this->process(sprintf('mysql -uroot -p%s -e "%s"', $this->config->getRootPassword(), $command));
+        return sprintf('mysql -uroot -p%s%s', $this->config->getRootPassword(), ($extra ? " $extra" : ''));
     }
 
-    final public function importSqlFromFile(string $db, string $file): Process
+    final public function mysqlQuery(string|array $query): Process
     {
-        return $this->process(sprintf('mysql -uroot -p%s %s < %s', $this->config->getRootPassword(), $db, $file));
+        return $this->process(
+            array_map(fn($q) => $this->prepareMysqlCommand('-e "'.$q.'"'),
+                (array)$query)
+        );
     }
 
-    protected function getExecuteCommand(string|array $command): string
+    final public function mysqlQueryFromFile(string $db, string|FileHandler|array $files): Process
     {
-        $commandString = implode(PHP_EOL, (array)$command);
-        $delimiter = 'EOF-KLAHVIK-LOCAL-CMD';
+        return $this->process(
+            array_map(
+                fn($sql) => $this->prepareMysqlCommand("$db < $sql"),
+                (array)$files,
+            )
+        );
+    }
 
+    protected function getProcessCommand(string|array $command): string
+    {
         $image = $this->config->getImage();
 
-        return "docker exec -i $image << $delimiter".PHP_EOL
-            .$commandString.PHP_EOL
-            .$delimiter;
+        return implode(
+            ' && ',
+            array_map(
+                static fn(string $cmd) => "docker exec -i $image $cmd",
+                (array)$command
+            )
+        );
     }
 }

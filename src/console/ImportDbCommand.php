@@ -4,12 +4,10 @@ namespace Infira\Klahvik\console;
 
 
 use Infira\Console\Console;
-use Infira\Klahvik\config\Config;
 use Infira\Klahvik\config\DbConfig;
 use Infira\Klahvik\config\Models\DbProject;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
-use Wolo\File\File;
 use Wolo\File\FileHandler;
 
 /**
@@ -29,7 +27,6 @@ class ImportDbCommand extends Command
         $this->addOption('localDb', 'l', InputOption::VALUE_OPTIONAL, 'local db name', null);
         $this->addOption('branch', 'b', InputOption::VALUE_OPTIONAL, 'Into what branch', 'master');
         $this->addOption('force', 'f', InputOption::VALUE_NONE);
-        $this->addOption('del');
     }
 
     public function runCommand(): void
@@ -39,23 +36,26 @@ class ImportDbCommand extends Command
         foreach ($projects as $argProject) {
             $project = $this->config->project($argProject);
             Console::region("importing project('$project')", function () use ($project) {
-                $this->downloadRemoteDb($project);
-                $this->importToDocker($project);
+                $this->downloadDb($project);
+                $this->importDb($project);
                 $this->runTasks($project);
             });
             Console::nl();
         }
     }
 
-    protected function downloadRemoteDb(DbProject $project): void
+    protected function downloadDb(DbProject $project): void
     {
         $db = $project->db->toString();
-        $tarFile = $this->local->tmpFile("$db.tar.gz");
-        if (!$this->input->getOption('force') && $tarFile->exists()) {
+        $dataFile = $this->dataFile($db);
+        if ($this->input->getOption('force')) {
+            $dataFile->removeIfExists();
+            $this->structureFile($db)->removeIfExists();
+        }
+        elseif ($dataFile->exists()) {
             return;
         }
-        $this->remote->task("fetching databaase <comment>$db</comment> from server", function () use ($db, $tarFile) {
-            $tarFile->removeIfExists();
+        $this->remote->task("fetching databaase <comment>$db</comment> from server {name}", function () use ($db) {
             $tmpPath = $this->remote->tmpPath();
             $bashVars = [
                 'db' => $db,
@@ -77,53 +77,93 @@ class ImportDbCommand extends Command
             $dumpBash = $this->createDumpDbBash($bashVars, $this->config->getVoidDataDumpTables(), $mysqlArguments);
             $remoteBash = $this->remote->tmpPath('dumpDb.sh');
 
-            $this->remote->uploadProcess($dumpBash, $remoteBash)->speak('uploading bash file');
-            debug($remoteBash);exit;
+            $upload = $this->remote->upload($dumpBash, $remoteBash)->runTask('uploading bash file');
+            if (!$upload->isSuccessful()) {
+                $upload->speakFailedStatus();
+
+                return;
+            }
+            $upload->speakDone();
             $dumpBash->remove();
-            $this->remote->process("sh $remoteBash $db $dumpBash")->speak("dumping database");
+            $dump = $this->remote->execute("sh $remoteBash $db $dumpBash", "dumping database");
+            if (!$dump->isSuccessful()) {
+                $dump->speakFailedStatus();
+
+                return;
+            }
+            $dump->speakDone();
             $this->remote->deleteFile($remoteBash);
 
-            $this->remote
-                ->downloadFileProcess(
-                    $this->remote->tmpPath("$db.tar.gz"),
-                    Config::getLocalTmpPath()
+            $tarFileName = "$db.tar.gz";
+            $localTarFile = $this->local->tmpFile($tarFileName);
+            $downloadTar = $this->remote
+                ->download(
+                    $this->remote->tmpPath($tarFileName),
+                    $localTarFile
                 )
-                ->speak("downloading $db.tar.gz");
+                ->runTask("downloading $tarFileName");
 
+            if (!$downloadTar->isSuccessful()) {
+                $downloadTar->speakFailedStatus();
+
+                return;
+            }
+            $downloadTar->speakDone();
             $this->remote->deleteFile(
                 $this->remote->tmpPath("$db.structure.sql"),
                 $this->remote->tmpPath("$db.data.sql"),
                 $this->remote->tmpPath("$db.tar.gz"),
             );
+
+            $unpack = $this->local
+                ->process(
+                    sprintf(
+                        'tar -xvf %s -C %s',
+                        $localTarFile->toString(),
+                        $this->local->tmpPath()
+                    )
+                )
+                ->voidRunError()->runTask("unpacking tar");
+            if (!$unpack->isSuccessful()) {
+                $unpack->speakFailedStatus();
+
+                return;
+            }
+            if (!$this->structureFile($db)->exists() || !$this->dataFile($db)->exists()) {
+                Console::error('SQL files were not found');
+            }
+            $unpack->speakDone();
+            $localTarFile->remove();
         });
     }
 
-    protected function importToDocker(DbProject $project): void
+    protected function importDb(DbProject $project): void
     {
-        $deleteDumpFiles = $this->input->getOption('del');
         $fromDb = $project->db->toString();
         $branch = $this->input->getOption('branch');
         $db = $this->input->getOption('localDb') ?: $this->config->getLocalName($branch, $project);
 
-        $this->local->task("importing to docker", function () use ($db, $fromDb, $deleteDumpFiles) {
-            $this->local->process(
-                sprintf(
-                    ' tar -xvf %s -C %s',
-                    Config::getLocalTmpPath("$fromDb.tar.gz"),
-                    Config::getLocalTmpPath()
-                )
-            )->speak("unpacking tar");
+        $this->local->task("importing to {name}", function () use ($db, $fromDb) {
+            $structureFile = $this->structureFile($fromDb);
+            $dataFile = $this->dataFile($fromDb);
 
-            $this->docker->executeMysql('DROP DATABASE IF EXISTS '.$db)->speak("droping old $db");
-            $this->docker->executeMysql('CREATE DATABASE '.$db.' DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci')->speak("creating $db");
-            $structureFile = $this->docker->tmpPath("$fromDb.structure.sql");
-            $dataFile = $this->docker->tmpPath("$fromDb.data.sql");
-            $this->docker->importSqlFromFile($db, $structureFile)->speak("importing $structureFile");
-            $this->docker->importSqlFromFile($db, $dataFile)->speak("importing $dataFile");
-            $this->local->deleteFile($structureFile, $dataFile);
-            if ($deleteDumpFiles) {
-                $this->local->deleteFile(Config::getLocalTmpPath("$fromDb.tar.gz"));
+            $createDb = $this->docker->mysqlQuery([
+                'DROP DATABASE IF EXISTS '.$db,
+                'CREATE DATABASE '.$db.' DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
+            ])->runTask("creating $db");
+
+            if (!$createDb->isSuccessful()) {
+                $createDb->speakFailedStatus();
+
+                return;
             }
+            $createDb->speakDone();
+
+            $import = $this->docker->mysqlQueryFromFile($db, [$structureFile, $dataFile])->runTask("importing $db");
+            if (!$import->isSuccessful()) {
+                $import->speakFailedStatus();
+            }
+            $import->speakDone();
         });
     }
 
@@ -136,7 +176,7 @@ class ImportDbCommand extends Command
         $tasks->each(function (string $task) use ($project) {
             Console::miniRegion(
                 "running project($project) task($task)",
-                fn() => $this->local->process($task)->speak(),
+                fn() => $this->local->execute($task),
                 20
             );
         });
@@ -153,5 +193,15 @@ class ImportDbCommand extends Command
         $variables['mysqlArguments'] = implode(' ', $mysqlArguments);
 
         return $this->local->createBash('dumpDb.sh.template', 'dumpDb.sh', $variables);
+    }
+
+    private function structureFile(string $db): FileHandler
+    {
+        return $this->local->tmpFile("$db.structure.sql");
+    }
+
+    private function dataFile(string $db): FileHandler
+    {
+        return $this->local->tmpFile("$db.data.sql");
     }
 }

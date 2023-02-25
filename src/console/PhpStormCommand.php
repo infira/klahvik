@@ -42,7 +42,7 @@ class PhpStormCommand extends Command
 		}
 
 		$this->local->task("cloing $branch", function () use ($gitUrl, $branch, $clonePath) {
-			$this->local->process("git clone --progress --branch $branch $gitUrl $clonePath")->speak();
+			$this->local->process("git clone --progress --branch $branch $gitUrl $clonePath")->speakOld();
 		});
 
 		Folder::make($this->clonePath('.idea'));
@@ -54,7 +54,7 @@ class PhpStormCommand extends Command
 		if (file_exists($composerJson)) {
 			$this->local->task("installing composer", function () use ($composerJson) {
 				$path = dirname($composerJson);
-				$this->local->process("cd $path && " . $this->config->getComposer() . " install")->speak();
+				$this->local->process("cd $path && " . $this->config->getComposer() . " install")->speakOld();
 			});
 		}
 

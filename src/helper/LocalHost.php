@@ -4,7 +4,6 @@ namespace Infira\Klahvik\helper;
 
 use Infira\Console\Console;
 use Infira\Console\Process;
-use Wolo\File\File;
 use Wolo\File\FileHandler;
 use Wolo\File\Path;
 use Wolo\Str;
@@ -29,23 +28,7 @@ class LocalHost extends MachineInstance
         return $bashFile;
     }
 
-    public function rsyncFolderProcess(string $server, string $src, string $destination): Process
-    {
-        $src = Path::slash($src);
-        $destination = Path::slash($destination);
-        if (!Str::endsWith($src, '*')) {
-            $src .= '*';
-        }
-
-        return $this->rsync($server, $src, $destination);
-    }
-
-    public function rsync(string $server, string $src, string $destination): Process
-    {
-        return $this->process("rsync --timeout=0 -av --progress --del $server:$src $destination");
-    }
-
-    protected function getExecuteCommand(string|array $command): string
+    protected function getProcessCommand(string|array $command): string
     {
         $commandString = implode(PHP_EOL, (array)$command);
         $delimiter = 'EOF-KLAHVIK-LOCAL-CMD';
@@ -55,8 +38,15 @@ class LocalHost extends MachineInstance
             .$delimiter;
     }
 
-    public function deleteFile(string ...$files): void
+    public function execute(string|array $commands): string
     {
-        File::removeIfExists($files);
+        $res = [];
+        foreach ((array)$commands as $cmd) {
+            $output = null;
+            exec($cmd, $output);
+            $res[] = $output;
+        }
+
+        return implode("\n", $res);
     }
 }

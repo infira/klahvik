@@ -36,10 +36,7 @@ class RSyncCommand extends Command
                 $branches = is_string($pathStr) ? (array)trim($pathStr) : $pathStr;
                 foreach ($branches as $f) {
                     [$source, $dest] = array_map(static fn($f) => trim($f), explode(',', $f));
-                    $process = $this->remote->downloadFolderProcess($source, $dest);
-                    $process->setSpeaker(function ($line) use ($f) {
-                        $this->remote->sayProcess($line, "syncing $f");
-                    })->speak();
+                    $this->remote->downloadFolder($source, $dest)->runTask("syncing $f");
                 }
             };
             foreach ($folders as $name => $pathStr) {
