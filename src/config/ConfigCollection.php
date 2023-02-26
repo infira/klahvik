@@ -52,11 +52,6 @@ class ConfigCollection extends Collection
         return Path::slash($value);
     }
 
-    public function exists(string $key): bool
-    {
-        return $this->has($key);
-    }
-
     protected function error(string $key, string $message): void
     {
         Console::error("ConfigManager('".static::class."') says: key('$key') $message");

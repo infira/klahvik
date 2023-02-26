@@ -18,7 +18,7 @@ class DbConfig extends ConfigCollection
 
     public function getHost(): ?string
     {
-        if (!$this->exists('host')) {
+        if (!$this->has('host')) {
             return null;
         }
 
@@ -27,7 +27,7 @@ class DbConfig extends ConfigCollection
 
     public function groupSuffix(): ?string
     {
-        if (!$this->exists('groupSuffix')) {
+        if (!$this->has('groupSuffix')) {
             return null;
         }
 
@@ -36,7 +36,7 @@ class DbConfig extends ConfigCollection
 
     public function getUser(): ?string
     {
-        if (!$this->exists('user')) {
+        if (!$this->has('user')) {
             return null;
         }
 
@@ -45,7 +45,7 @@ class DbConfig extends ConfigCollection
 
     public function getPass(): ?string
     {
-        if (!$this->exists('pass')) {
+        if (!$this->has('pass')) {
             return null;
         }
 

@@ -3,12 +3,9 @@
 namespace Infira\Klahvik\helper;
 
 use Infira\Console\Console;
-use Infira\Console\Process;
 use Wolo\File\FileHandler;
-use Wolo\File\Path;
-use Wolo\Str;
 
-class LocalHost extends MachineInstance
+class LocalHost extends \Infira\Console\Machine\LocalHost
 {
     public function createBash(string $templateFileName, string $bashFileName, array $variables): FileHandler
     {
@@ -26,27 +23,5 @@ class LocalHost extends MachineInstance
         $bashFile->put($content);
 
         return $bashFile;
-    }
-
-    protected function getProcessCommand(string|array $command): string
-    {
-        $commandString = implode(PHP_EOL, (array)$command);
-        $delimiter = 'EOF-KLAHVIK-LOCAL-CMD';
-
-        return "sh << $delimiter".PHP_EOL
-            .$commandString.PHP_EOL
-            .$delimiter;
-    }
-
-    public function execute(string|array $commands): string
-    {
-        $res = [];
-        foreach ((array)$commands as $cmd) {
-            $output = null;
-            exec($cmd, $output);
-            $res[] = $output;
-        }
-
-        return implode("\n", $res);
     }
 }

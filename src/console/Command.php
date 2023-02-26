@@ -2,17 +2,18 @@
 
 namespace Infira\Klahvik\console;
 
+use Infira\Console\Machine\DockerImage;
+use Infira\Console\Machine\SshServer;
 use Infira\Klahvik\config\ClientConfig;
 use Infira\Klahvik\config\Config;
-use Infira\Klahvik\helper\DockerMachine;
 use Infira\Klahvik\helper\LocalHost;
 use Infira\Klahvik\helper\RemoteServer;
 
 class Command extends \Infira\Console\Command
 {
-    protected RemoteServer $remote;
+    protected SshServer $remote;
     protected LocalHost $local;
-    protected DockerMachine $docker;
+    protected DockerImage $docker;
     protected ClientConfig $clientConfig;
 
     public function __construct(string $command, string $client)
@@ -30,10 +31,21 @@ class Command extends \Infira\Console\Command
     protected function configureExecute()
     {
         $this->configureRemote();
-        $this->local = new LocalHost('localhost', Config::getLocal(), $this->output);
-        $this->docker = new DockerMachine($this->output);
+        $localConfig = Config::getLocal()->toArray();
+        $localConfig['tmpPath'] = Config::getLocal()->getTmpPath();
+        $this->local = new LocalHost($this->output, $localConfig);
+        $dockerConfig = Config::getDocker()->toArray();
+        $dockerConfig['tmpPath'] = Config::getDocker()->getTmpPath();
+        $this->docker = new DockerImage($this->output, $dockerConfig, 'mysql.docker');
 
-        $this->remote = new RemoteServer($this->clientConfig->getServer(), $this->local, $this->output);
+        $serverConfig = $this->clientConfig->getServer()->toArray();
+        $serverConfig['tmpPath'] = $this->clientConfig->getServer()->getTmpPath();
+        $this->remote = new SshServer(
+            $this->output,
+            $serverConfig,
+            $this->local,
+            $this->clientConfig->getServer()->getHost()
+        );
         $this->configureMethod();
     }
 

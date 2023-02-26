@@ -6,9 +6,7 @@ class ClientConfig extends ConfigCollection
 {
     public function getDb(): DbConfig
     {
-        $generalConfig = Config::getDb();
-        $dbConfig = $this->getArray('db');
-        $config = array_merge($generalConfig, $dbConfig);
+        $config = array_merge(Config::getDb(), $this->get('db', []));
 
         return new DbConfig($config);
     }
@@ -30,7 +28,7 @@ class ClientConfig extends ConfigCollection
 
     public function getRSync(): array
     {
-        if (!$this->exists('rsync')) {
+        if (!$this->has('rsync')) {
             return [];
         }
         $s = $this->get('rsync');
