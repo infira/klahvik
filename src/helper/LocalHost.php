@@ -2,7 +2,7 @@
 
 namespace Infira\Klahvik\helper;
 
-use Infira\Console\Console;
+use Infira\Console\ConsoleRuntimeException;
 use Wolo\File\FileHandler;
 
 class LocalHost extends \Infira\Console\Machine\LocalHost
@@ -11,7 +11,7 @@ class LocalHost extends \Infira\Console\Machine\LocalHost
     {
         $tmpl = KLAHVIK_PATH.'src/bashTemplates/'.$templateFileName;
         if (!file_exists($tmpl)) {
-            Console::error("bash template('$tmpl') does not exist");
+            throw new ConsoleRuntimeException("bash template('$tmpl') does not exist");
         }
         $content = file_get_contents($tmpl);
         foreach ($variables as $name => $value) {

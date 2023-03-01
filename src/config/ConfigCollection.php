@@ -3,7 +3,7 @@
 namespace Infira\Klahvik\config;
 
 use Illuminate\Support\Collection;
-use Infira\Console\Console;
+use Infira\Console\ConsoleRuntimeException;
 use Wolo\File\Path;
 
 class ConfigCollection extends Collection
@@ -54,6 +54,6 @@ class ConfigCollection extends Collection
 
     protected function error(string $key, string $message): void
     {
-        Console::error("ConfigManager('".static::class."') says: key('$key') $message");
+        throw new ConsoleRuntimeException("ConfigManager('".static::class."') says: key('$key') $message");
     }
 }

@@ -3,7 +3,7 @@
 namespace Infira\Klahvik\console;
 
 
-use Infira\Console\Console;
+use Infira\Console\ConsoleRuntimeException;
 use Infira\Klahvik\config\DbConfig;
 use Infira\Klahvik\config\Models\DbProject;
 use Symfony\Component\Console\Input\InputArgument;
@@ -23,6 +23,7 @@ class ImportDbCommand extends Command
 
     public function configure(): void
     {
+        parent::configure();
         $this->addArgument('project', InputArgument::IS_ARRAY, 'What project to download', ['all']);
         $this->addOption('localDb', 'l', InputOption::VALUE_OPTIONAL, 'local db name', null);
         $this->addOption('branch', 'b', InputOption::VALUE_OPTIONAL, 'Into what branch', 'master');
@@ -35,12 +36,12 @@ class ImportDbCommand extends Command
         $projects = $projects[0] === 'all' ? $this->config->getProjectNames() : $projects;
         foreach ($projects as $argProject) {
             $project = $this->config->project($argProject);
-            Console::region("importing project('$project')", function () use ($project) {
+            $this->console->region("importing project('$project')", function () use ($project) {
                 $this->downloadDb($project);
                 $this->importDb($project);
                 $this->runTasks($project);
             });
-            Console::nl();
+            $this->console->nl();
         }
     }
 
@@ -130,7 +131,7 @@ class ImportDbCommand extends Command
                 return;
             }
             if (!$this->structureFile($db)->exists() || !$this->dataFile($db)->exists()) {
-                Console::error('SQL files were not found');
+                throw new ConsoleRuntimeException('SQL files were not found');
             }
             $unpack->speakDone();
             $localTarFile->remove();
@@ -174,7 +175,7 @@ class ImportDbCommand extends Command
             return;
         }
         $tasks->each(function (string $task) use ($project) {
-            Console::miniRegion(
+            $this->console->miniRegion(
                 "running project($project) task($task)",
                 fn() => $this->local->execute($task),
                 20

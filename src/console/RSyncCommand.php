@@ -2,7 +2,7 @@
 
 namespace Infira\Klahvik\console;
 
-use Infira\Console\Console;
+use Infira\Console\ConsoleRuntimeException;
 use Symfony\Component\Console\Input\InputArgument;
 
 class RSyncCommand extends Command
@@ -17,21 +17,22 @@ class RSyncCommand extends Command
 
     public function configure(): void
     {
+        parent::configure();
         $this->addArgument('folder', InputArgument::OPTIONAL, 'What folder to sync', 'all');
     }
 
     public function runCommand()
     {
         if (!$this->folders) {
-            Console::error("task 'rsync' config not defined");
+            throw new ConsoleRuntimeException("task 'rsync' config not defined");
         }
         $folder = $this->input->getArgument('folder');
         if ($folder !== 'all' && !isset($this->folders[$folder])) {
-            Console::error("Folder('$folder') not defined");
+            throw new ConsoleRuntimeException("Folder('$folder') not defined");
         }
         $folders = $folder === 'all' ? $this->folders : [$folder => $this->folders[$folder]];
         $count = count($folders);
-        $this->output->region("rsync ('$folder')", function () use ($folders, $count) {
+        $this->console->region("rsync ('$folder')", function () use ($folders, $count) {
             $sync = function ($pathStr) {
                 $branches = is_string($pathStr) ? (array)trim($pathStr) : $pathStr;
                 foreach ($branches as $f) {
@@ -41,7 +42,7 @@ class RSyncCommand extends Command
             };
             foreach ($folders as $name => $pathStr) {
                 if ($count > 1) {
-                    $this->output->miniRegion($name, fn() => $sync($pathStr), 10);
+                    $this->console->miniRegion($name, fn() => $sync($pathStr), 10);
                 }
                 else {
                     $sync($pathStr);

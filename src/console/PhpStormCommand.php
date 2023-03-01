@@ -3,7 +3,7 @@
 namespace Infira\Klahvik\console;
 
 
-use Infira\Console\Console;
+use Infira\Console\ConsoleRuntimeException;
 use Infira\Klahvik\config\PhpStormConfig;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
@@ -38,7 +38,7 @@ class PhpStormCommand extends Command
 		$folderName   = $this->input->getOption('folderName') ?: $branch;
 		$clonePath    = $this->clonePath();
 		if (is_dir($clonePath)) {
-			Console::error("Clonepath('$clonePath') already exists");
+            throw new ConsoleRuntimeException("Clonepath('$clonePath') already exists");
 		}
 
 		$this->local->task("cloing $branch", function () use ($gitUrl, $branch, $clonePath) {

@@ -3,7 +3,6 @@
 
 use Infira\Console\Bin;
 use Infira\Klahvik\config\Config;
-use Infira\Klahvik\console\Console;
 use Infira\Klahvik\console\ImportDbCommand;
 use Infira\Klahvik\console\PhpStormCommand;
 use Infira\Klahvik\console\RSyncCommand;
@@ -30,7 +29,7 @@ Bin::init([
 Bin::run('klahvik', static function (Application $app) {
     $configFile = Path::join($_SERVER['HOME'], 'ws/dotfiles/.klahvik.yaml');
     if (!file_exists($configFile)) {
-        Console::error("klahvik config file('$configFile') does not exists");
+        throw new \Infira\Console\ConsoleRuntimeException("klahvik config file('$configFile') does not exists");
     }
     Config::set(Yaml::parseFile($configFile));
 

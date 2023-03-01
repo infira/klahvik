@@ -7,7 +7,6 @@ use Infira\Console\Machine\SshServer;
 use Infira\Klahvik\config\ClientConfig;
 use Infira\Klahvik\config\Config;
 use Infira\Klahvik\helper\LocalHost;
-use Infira\Klahvik\helper\RemoteServer;
 
 class Command extends \Infira\Console\Command
 {
@@ -30,18 +29,18 @@ class Command extends \Infira\Console\Command
 
     protected function configureExecute()
     {
-        $this->configureRemote();
+        parent::configureExecute();
         $localConfig = Config::getLocal()->toArray();
         $localConfig['tmpPath'] = Config::getLocal()->getTmpPath();
-        $this->local = new LocalHost($this->output, $localConfig);
+        $this->local = new LocalHost($this->console, $localConfig);
         $dockerConfig = Config::getDocker()->toArray();
         $dockerConfig['tmpPath'] = Config::getDocker()->getTmpPath();
-        $this->docker = new DockerImage($this->output, $dockerConfig, 'mysql.docker');
+        $this->docker = new DockerImage($this->console, $dockerConfig, 'mysql.docker');
 
         $serverConfig = $this->clientConfig->getServer()->toArray();
         $serverConfig['tmpPath'] = $this->clientConfig->getServer()->getTmpPath();
         $this->remote = new SshServer(
-            $this->output,
+            $this->console,
             $serverConfig,
             $this->local,
             $this->clientConfig->getServer()->getHost()
@@ -57,6 +56,4 @@ class Command extends \Infira\Console\Command
     {
         //void
     }
-
-    protected function configureRemote() {}
 }
