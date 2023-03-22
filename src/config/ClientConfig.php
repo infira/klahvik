@@ -6,7 +6,9 @@ class ClientConfig extends ConfigCollection
 {
     public function getDb(): DbConfig
     {
-        $config = array_merge(Config::getDb(), $this->get('db', []));
+        $clientConfig = $this->get('db', []);
+        $config = array_merge(Config::getDb(), $clientConfig);
+        $config['voidDataDumpTables'] = array_merge(Config::getDb()['voidDataDumpTables'], $config['voidDataDumpTables']);
 
         return new DbConfig($config);
     }
