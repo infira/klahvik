@@ -6,6 +6,7 @@ namespace Infira\Klahvik\console;
 use Infira\Console\ConsoleRuntimeException;
 use Infira\Klahvik\config\DbConfig;
 use Infira\Klahvik\config\Models\DbProject;
+use Symfony\Component\Console\Completion\CompletionInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Wolo\File\FileHandler;
@@ -18,13 +19,22 @@ class ImportDbCommand extends Command
     public function __construct(string $client)
     {
         parent::__construct('db', $client);
-        $this->config = $this->clientConfig->getDb();
     }
 
     public function configure(): void
     {
         parent::configure();
-        $this->addArgument('project', InputArgument::IS_ARRAY, 'What project to download', ['all']);
+        $this->config = $this->clientConfig->getDb();
+        $this->addArgument(
+            'project',
+            InputArgument::IS_ARRAY,
+            'What client to use',
+            $this->config->getProjectNames(),
+            function (CompletionInput $input) {
+                //$currentValue = $input->getCompletionValue();
+                return $this->config->getProjectNames();
+            }
+        );
         $this->addOption('localDb', 'l', InputOption::VALUE_OPTIONAL, 'local db name', null);
         $this->addOption('branch', 'b', InputOption::VALUE_OPTIONAL, 'Into what branch', 'master');
         $this->addOption('force', 'f', InputOption::VALUE_NONE);

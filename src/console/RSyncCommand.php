@@ -3,6 +3,7 @@
 namespace Infira\Klahvik\console;
 
 use Infira\Console\ConsoleRuntimeException;
+use Symfony\Component\Console\Completion\CompletionInput;
 use Symfony\Component\Console\Input\InputArgument;
 
 class RSyncCommand extends Command
@@ -12,13 +13,21 @@ class RSyncCommand extends Command
     public function __construct(string $client)
     {
         parent::__construct('data', $client);
-        $this->folders = $this->clientConfig->getRSync();
     }
 
     public function configure(): void
     {
         parent::configure();
-        $this->addArgument('folder', InputArgument::OPTIONAL, 'What folder to sync', 'all');
+        $this->folders = $this->clientConfig->getRSync();
+        $this->addArgument(
+            'folders',
+            InputArgument::IS_ARRAY,
+            'What folder names to sync',
+            array_keys($this->folders),
+            function (CompletionInput $input) {
+                return array_keys($this->folders);
+            }
+        );
     }
 
     public function runCommand()
@@ -26,13 +35,9 @@ class RSyncCommand extends Command
         if (!$this->folders) {
             throw new ConsoleRuntimeException("task 'rsync' config not defined");
         }
-        $folder = $this->input->getArgument('folder');
-        if ($folder !== 'all' && !isset($this->folders[$folder])) {
-            throw new ConsoleRuntimeException("Folder('$folder') not defined");
-        }
-        $folders = $folder === 'all' ? $this->folders : [$folder => $this->folders[$folder]];
-        $count = count($folders);
-        $this->console->region("rsync ('$folder')", function () use ($folders, $count) {
+        $runFolders = $this->input->getArgument('folders');
+        $count = count($runFolders);
+        $this->console->region("rsync", function () use ($runFolders, $count) {
             $sync = function ($pathStr) {
                 $branches = is_string($pathStr) ? (array)trim($pathStr) : $pathStr;
                 foreach ($branches as $f) {
@@ -40,7 +45,8 @@ class RSyncCommand extends Command
                     $this->remote->downloadFolder($source, $dest)->runTask("syncing $f");
                 }
             };
-            foreach ($folders as $name => $pathStr) {
+            foreach ($runFolders as $name) {
+                $pathStr = $this->folders[$name];
                 if ($count > 1) {
                     $this->console->miniRegion($name, fn() => $sync($pathStr), 10);
                 }
