@@ -34,6 +34,15 @@ class DbConfig extends ConfigCollection
         return $this->getString('groupSuffix');
     }
 
+    public function mysqlArguments(): ?array
+    {
+        if (!$this->has('mysqlArguments')) {
+            return null;
+        }
+
+        return $this->getArray('mysqlArguments');
+    }
+
     public function getUser(): ?string
     {
         if (!$this->has('user')) {

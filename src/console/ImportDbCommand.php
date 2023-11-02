@@ -63,7 +63,7 @@ class ImportDbCommand extends Command
             $dataFile->removeIfExists();
             $this->structureFile($db)->removeIfExists();
         }
-        elseif ($dataFile->exists()) {
+        else if ($dataFile->exists()) {
             return;
         }
         $this->remote->task("fetching databaase <comment>$db</comment> from server {name}", function () use ($db) {
@@ -85,6 +85,13 @@ class ImportDbCommand extends Command
             if ($groupSuffix = $this->config->groupSuffix()) {
                 $mysqlArguments[] = "--defaults-group-suffix=$groupSuffix";
             }
+
+            if ($configArguments = $this->config->mysqlArguments()) {
+                foreach ($configArguments as $name => $value) {
+                    $mysqlArguments[] = "$name=$value";
+                }
+            }
+
             $dumpBash = $this->createDumpDbBash($bashVars, $this->config->getVoidDataDumpTables(), $mysqlArguments);
             $remoteBash = $this->remote->tmpPath('dumpDb.sh');
 
