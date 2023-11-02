@@ -3,7 +3,7 @@ declare IGNORED_VIEWS_STRING=""
 declare IGNORE_DATA_TABLE_STRING=""
 cd ${tempPath}
 
-lines=$(mysql --skip-column-names -e"SHOW FULL tables FROM ${db} WHERE Table_Type = 'VIEW'")
+lines=$(mysql ${mysqlArguments} --skip-column-names -e"SHOW FULL tables FROM ${db} WHERE Table_Type = 'VIEW'")
 while read -r table type; do
   IGNORED_VIEWS_STRING+=" --ignore-table=${db}.${table}"
 done <<<"$lines"

@@ -72,27 +72,30 @@ class ImportDbCommand extends Command
                 'db' => $db,
                 'tempPath' => $tmpPath,
             ];
-            $mysqlArguments = [];
+            $bashVars['mysqlArguments'] = [];
             if ($user = $this->config->getUser()) {
-                $mysqlArguments[] = "-u $user";
+                $bashVars['mysqlArguments'][] = "-u $user";
             }
             if ($pass = $this->config->getPass()) {
-                $mysqlArguments[] = "-p $pass";
+                $bashVars['mysqlArguments'][] = "-p $pass";
             }
             if ($host = $this->config->getHost()) {
-                $mysqlArguments[] = "-h $host";
+                $bashVars['mysqlArguments'][] = "-h $host";
             }
             if ($groupSuffix = $this->config->groupSuffix()) {
-                $mysqlArguments[] = "--defaults-group-suffix=$groupSuffix";
+                $bashVars['mysqlArguments'][] = "--defaults-group-suffix=$groupSuffix";
             }
 
             if ($configArguments = $this->config->mysqlArguments()) {
                 foreach ($configArguments as $name => $value) {
-                    $mysqlArguments[] = "$name=$value";
+                    $bashVars['mysqlArguments'][] = "$name=$value";
                 }
             }
 
-            $dumpBash = $this->createDumpDbBash($bashVars, $this->config->getVoidDataDumpTables(), $mysqlArguments);
+            $dumpBash = $this->createDumpDbBash(
+                $bashVars,
+                $this->config->getVoidDataDumpTables()
+            );
             $remoteBash = $this->remote->tmpPath('dumpDb.sh');
 
             $upload = $this->remote->upload($dumpBash, $remoteBash)->runTask('uploading bash file');
@@ -200,7 +203,7 @@ class ImportDbCommand extends Command
         });
     }
 
-    public function createDumpDbBash(array $variables, array $ignoreTables, $mysqlArguments = []): FileHandler
+    public function createDumpDbBash(array $variables, array $ignoreTables): FileHandler
     {
         $variables['IGNORE_DATA_TABLE_STRING'] = [];
         foreach ($ignoreTables as $table) {
@@ -208,7 +211,11 @@ class ImportDbCommand extends Command
         }
         $variables['IGNORE_DATA_TABLE_STRING'] = implode(' ', $variables['IGNORE_DATA_TABLE_STRING']);
 
-        $variables['mysqlArguments'] = implode(' ', $mysqlArguments);
+        if (!array_key_exists('mysqlArguments', $variables)) {
+            $variables['mysqlArguments'] = [];
+        }
+
+        $variables['mysqlArguments'] = implode(' ', $variables['mysqlArguments']);
 
         return $this->local->createBash('dumpDb.sh.template', 'dumpDb.sh', $variables);
     }
