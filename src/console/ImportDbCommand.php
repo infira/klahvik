@@ -164,27 +164,51 @@ class ImportDbCommand extends Command
         $branch = $this->input->getOption('branch');
         $db = $this->input->getOption('localDb') ?: $this->config->getLocalName($branch, $project);
 
+
         $this->local->task("importing to {name}", function () use ($db, $fromDb) {
             $structureFile = $this->structureFile($fromDb);
             $dataFile = $this->dataFile($fromDb);
 
-            $createDb = $this->docker->mysqlQuery([
-                'DROP DATABASE IF EXISTS '.$db,
-                'CREATE DATABASE '.$db.' DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
-            ])->runTask("creating $db");
+            $createDb = $this->docker
+                ->mysqlQuery(
+                    [
+                        'DROP DATABASE IF EXISTS '.$db,
+                        'CREATE DATABASE '.$db.' DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
+                    ]
+                )
+                ->runTask("creating $db");
 
             if (!$createDb->isSuccessful()) {
                 $createDb->speakFailedStatus();
-
                 return;
             }
             $createDb->speakDone();
 
-            $import = $this->docker->mysqlQueryFromFile($db, [$structureFile, $dataFile])->runTask("importing $db");
-            if (!$import->isSuccessful()) {
-                $import->speakFailedStatus();
+            $importStructure = $this->docker
+                ->mysqlQueryFromFile(
+                    $db,
+                    $structureFile
+                )
+                ->runTask("importing structure $db");
+
+            if (!$importStructure->isSuccessful()) {
+                $importStructure->speakFailedStatus();
+                return;
             }
-            $import->speakDone();
+            $importStructure->speakDone();
+
+            $importData = $this->docker
+                ->mysqlQueryFromFile(
+                    $db,
+                    $dataFile
+                )
+                ->runTask("importing $db");
+
+            if (!$importData->isSuccessful()) {
+                $importData->speakFailedStatus();
+                return;
+            }
+            $importData->speakDone();
         });
     }
 
