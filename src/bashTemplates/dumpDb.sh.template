@@ -8,12 +8,16 @@ while read -r table type; do
   IGNORED_VIEWS_STRING+=" --ignore-table=${db}.${table}"
 done <<<"$lines"
 
-mysqldump ${mysqlArguments} --add-drop-table --skip-triggers --single-transaction --no-data ${IGNORED_VIEWS_STRING} ${db} > ${db}.structure.sql
-sed -i 's/DEFINER=[^*]*\*/\*/g' "${db}.structure.sql"
+structureSqlFile="${db}.structure.sql"
+dataSqlFile="${db}.data.sql"
+
+mysqldump ${mysqlArguments} --add-drop-table --skip-triggers --single-transaction --no-data ${IGNORED_VIEWS_STRING} ${db} > ${structureSqlFile}
+sed -i 's/DEFINER=[^*]*\*/\*/g' "${structureSqlFile}"
 
 echo "Dump ${db} data"
-mysqldump ${mysqlArguments} --add-drop-trigger --skip-triggers --no-create-info --lock-tables=false --skip-lock-tables ${IGNORED_VIEWS_STRING} ${IGNORE_DATA_TABLE_STRING} ${db} > ${db}.data.sql
-sed -i 's/DEFINER=[^*]*\*/\*/g' "${db}.data.sql"
+mysqldump ${mysqlArguments} --add-drop-trigger --skip-triggers --no-create-info --lock-tables=false --skip-lock-tables ${IGNORED_VIEWS_STRING} ${IGNORE_DATA_TABLE_STRING} ${db} > ${dataSqlFile}
+sed -i 's/DEFINER=[^*]*\*/\*/g' "${dataSqlFile}"
 
 echo "tar ${db}.tar.gz data"
-tar -czf ${db}.tar.gz *.sql
+tar -czf ${db}.tar.gz ${structureSqlFile} ${dataSqlFile}
+rm -f ${structureSqlFile} ${dataSqlFile} dumpDb.sh

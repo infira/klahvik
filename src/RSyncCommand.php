@@ -1,8 +1,8 @@
 <?php
 
-namespace Infira\Klahvik\console;
+namespace Infira\Klahvik;
 
-use Infira\Console\ConsoleRuntimeException;
+use Infira\Console\Exceptions\ConsoleRuntimeException;
 use Symfony\Component\Console\Completion\CompletionInput;
 use Symfony\Component\Console\Input\InputArgument;
 
@@ -30,7 +30,7 @@ class RSyncCommand extends Command
         );
     }
 
-    public function runCommand()
+    public function runCommand(): void
     {
         if (!$this->folders) {
             throw new ConsoleRuntimeException("task 'rsync' config not defined");
@@ -42,7 +42,9 @@ class RSyncCommand extends Command
                 $branches = is_string($pathStr) ? (array)trim($pathStr) : $pathStr;
                 foreach ($branches as $f) {
                     [$source, $dest] = array_map(static fn($f) => trim($f), explode(',', $f));
-                    $this->remote->downloadFolder($source, $dest)->runTask("syncing $f");
+                    $this->local
+                        ->downloadFolder($this->remote->getRSyncPath($source), $dest)
+                        ->runTask("syncing $f");
                 }
             };
             foreach ($runFolders as $name) {

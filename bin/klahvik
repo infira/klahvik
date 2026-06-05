@@ -2,11 +2,15 @@
 <?php
 
 use Infira\Console\Bin;
-use Infira\Klahvik\config\Config;
-use Infira\Klahvik\console\ImportDbCommand;
-use Infira\Klahvik\console\PhpStormCommand;
-use Infira\Klahvik\console\RSyncCommand;
+use Infira\Console\Exceptions\ConsoleRuntimeException;
+use Infira\Klahvik\Config\Klahvik;
+use Infira\Klahvik\ImportDbCommand;
+use Infira\Klahvik\PhpStormCommand;
+use Infira\Klahvik\RSyncCommand;
 use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\Yaml\Yaml;
 use Wolo\File\Path;
 
@@ -16,7 +20,7 @@ if (file_exists(__DIR__.'/../../../autoload.php')) {
 else {
     require __DIR__.'/../vendor/autoload.php';
 }
-define("KLAHVIK_PATH", realpath(__DIR__.'/../').'/');
+$klahvikPath = realpath(__DIR__.'/../').'/';
 
 Bin::init([
         'traceFormatter' => static function (array $trace) {
@@ -26,16 +30,52 @@ Bin::init([
             return "<href=phpstorm://open?file=$file&line=$line>$file:$line</>";
         }
 ]);
-Bin::run('klahvik', static function (Application $app) {
-    $configFile = Path::join($_SERVER['HOME'], 'ws/dotfiles/.klahvik.yaml');
-    if (!file_exists($configFile)) {
-        throw new \Infira\Console\ConsoleRuntimeException("klahvik config file('$configFile') does not exists");
-    }
-    Config::set(Yaml::parseFile($configFile));
+Bin::run('klahvik', static function (Application $app, ArgvInput $input) use ($klahvikPath) {
+    // Register globally so the option appears in --help and is accepted on every command.
+    $app->getDefinition()->addOption(new InputOption(
+            'env-file',
+            'e',
+            InputOption::VALUE_OPTIONAL,
+            'Load env vars from a .env file. Use -e alone for ./.env in cwd, or --env-file=/path/to/.env for an explicit path.'
+    ));
 
-    foreach (Config::getClientNames() as $name) {
-        $app->add(new ImportDbCommand($name));
-        $app->add(new PhpStormCommand($name));
-        $app->add(new RSyncCommand($name));
+    $configFile = Path::join(getcwd(), 'klahvik.yaml');
+    if (!file_exists($configFile)) {
+        $configFile = Path::join($_SERVER['HOME'], 'ws/dotfiles/.klahvik.yaml');
+    }
+    if (!file_exists($configFile)) {
+        throw new ConsoleRuntimeException("klahvik config file('$configFile') does not exists");
+    }
+
+    if ($input->hasParameterOption(['--env-file', '-e'], true)) {
+        $envFile = $input->getParameterOption(['--env-file', '-e'], null, true)
+                ?: Path::join(getcwd(), '.env');
+        if (!file_exists($envFile)) {
+            throw new ConsoleRuntimeException("env file('$envFile') does not exist");
+        }
+        new Dotenv()->usePutenv()->load($envFile);
+    }
+
+    $config = Yaml::parseFile($configFile);
+    //replace .env variables from config
+    array_walk_recursive($config, static function (mixed &$value): void {
+        if (is_string($value)) {
+            $value = preg_replace_callback(
+                    '/\$\{([A-Z0-9_]+)}/',
+                    static fn(array $m): string => getenv($m[1]) !== false ? getenv($m[1]) : $m[0],
+                    $value
+            );
+        }
+    });
+
+    Klahvik::setConfig([
+            ...$config,
+            'klahvikPath' => $klahvikPath
+    ]);
+
+    foreach (Klahvik::getClientNames() as $name) {
+        $app->addCommand(new ImportDbCommand($name));
+        $app->addCommand(new PhpStormCommand($name));
+        $app->addCommand(new RSyncCommand($name));
     }
 });

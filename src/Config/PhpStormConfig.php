@@ -1,10 +1,10 @@
 <?php
 
-namespace Infira\Klahvik\config;
-
+namespace Infira\Klahvik\Config;
+use Infira\Console\Config;
 use Wolo\File\Path;
 
-class PhpStormConfig extends ConfigCollection
+class PhpStormConfig extends Config
 {
 	public function getGit(): string
 	{
@@ -23,11 +23,11 @@ class PhpStormConfig extends ConfigCollection
 	
 	public function getComposer(): string
 	{
-		return $this->getReal('composer', Config::getComposer());
+		return $this->get('composer', Klahvik::getComposer());
 	}
 	
 	public function getComposerJson(): string
 	{
-		return $this->getReal('composerJson', './composer.json');
+		return $this->get('composerJson', './composer.json');
 	}
 }
