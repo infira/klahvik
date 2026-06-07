@@ -11,17 +11,17 @@
       "Infira\\Klahvik\\": "src/"
     }
   },
-  "minimum-stability": "dev",
+  "minimum-stability": "stable",
   "bin": [
     "bin/klahvik"
   ],
+  "prefer-stable": true,
   "require": {
     "php": "~8.4",
     "infira/console": "v2.0",
-    "symfony/yaml": "^7.0",
-    "symfony/filesystem": "^7.0",
+    "symfony/yaml": "^v7.4",
+    "symfony/filesystem": "^v7.4",
     "illuminate/support": "^10.0",
-    "infira/fluent-value": "dev-main",
-    "symfony/dotenv": "8.2.x-dev"
+    "symfony/dotenv": "^v8.1"
   }
 }

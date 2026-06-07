@@ -3,7 +3,7 @@
 namespace Infira\Klahvik\Config\DbProject;
 
 use Infira\Console\Config;
-use Infira\FluentValue\Flu;
+use Infira\Klahvik\helper\Utils;
 
 class DbProject extends Config implements \Stringable
 {
@@ -14,7 +14,7 @@ class DbProject extends Config implements \Stringable
 
     public function getLocalDbName(string $branch, string $project): string
     {
-        return Flu::render(trim($this->get('local', '')), [
+        return Utils::renderString(trim($this->get('local', '')), [
             'branch' => $branch,
             'project' => $project,
         ]);
