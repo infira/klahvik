@@ -31,17 +31,37 @@ Bin::init([
         }
 ]);
 Bin::run('klahvik', static function (Application $app, ArgvInput $input) use ($klahvikPath) {
-    // Register globally so the option appears in --help and is accepted on every command.
+    // Register globally so options appear in --help and are accepted on every command.
     $app->getDefinition()->addOption(new InputOption(
             'env-file',
             'e',
             InputOption::VALUE_OPTIONAL,
             'Load env vars from a .env file. Use -e alone for ./.env in cwd, or --env-file=/path/to/.env for an explicit path.'
     ));
+    $app->getDefinition()->addOption(new InputOption(
+            'config',
+            'c',
+            InputOption::VALUE_REQUIRED,
+            'Path to klahvik config file. Defaults to ./klahvik.yaml or ~/ws/dotfiles/.klahvik.yaml.'
+    ));
 
-    $configFile = Path::join(getcwd(), 'klahvik.yaml');
-    if (!file_exists($configFile)) {
-        $configFile = Path::join($_SERVER['HOME'], 'ws/dotfiles/.klahvik.yaml');
+    $configFile = $input->getParameterOption(['--config', '-c'], null, true);
+    if ($configFile === null) {
+        $possibleConfigFiles = [
+                Path::join(getcwd(), 'klahvik.yaml'),
+                Path::join(getcwd(), 'klahvik.yml'),
+                Path::join($_SERVER['HOME'], '.klahvik/klahvik.yaml'),
+                Path::join($_SERVER['HOME'], '.klahvik/klahvik.yml'),
+        ];
+        debug(['$possibleConfigFiles' => $possibleConfigFiles]);
+        foreach ($possibleConfigFiles as $possibleConfigFile) {
+            if (file_exists($possibleConfigFile)) {
+                $configFile = $possibleConfigFile;
+            }
+        }
+    }
+    if (!$configFile) {
+        throw new ConsoleRuntimeException("klahvik config is not defined. Use --c=/path/to/config.yaml");
     }
     if (!file_exists($configFile)) {
         throw new ConsoleRuntimeException("klahvik config file('$configFile') does not exists");
@@ -50,6 +70,7 @@ Bin::run('klahvik', static function (Application $app, ArgvInput $input) use ($k
     if ($input->hasParameterOption(['--env-file', '-e'], true)) {
         $envFile = $input->getParameterOption(['--env-file', '-e'], null, true)
                 ?: Path::join(getcwd(), '.env');
+
         if (!file_exists($envFile)) {
             throw new ConsoleRuntimeException("env file('$envFile') does not exist");
         }
