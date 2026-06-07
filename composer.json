@@ -18,10 +18,10 @@
   "prefer-stable": true,
   "require": {
     "php": "~8.4",
-    "infira/console": "v2.0",
+    "infira/console": "^v2.0",
     "symfony/yaml": "^v7.4",
     "symfony/filesystem": "^v7.4",
-    "illuminate/support": "^10.0",
-    "symfony/dotenv": "^v8.1"
+    "symfony/dotenv": "^v8.1",
+    "illuminate/support": "^v11"
   }
 }
