@@ -22,6 +22,6 @@
     "symfony/yaml": "^v7.4",
     "symfony/filesystem": "^v7.4",
     "symfony/dotenv": "^v8.1",
-    "illuminate/support": "^v11"
+    "illuminate/support": "^v12"
   }
 }
