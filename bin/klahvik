@@ -53,7 +53,6 @@ Bin::run('klahvik', static function (Application $app, ArgvInput $input) use ($k
                 Path::join($_SERVER['HOME'], '.klahvik/klahvik.yaml'),
                 Path::join($_SERVER['HOME'], '.klahvik/klahvik.yml'),
         ];
-        debug(['$possibleConfigFiles' => $possibleConfigFiles]);
         foreach ($possibleConfigFiles as $possibleConfigFile) {
             if (file_exists($possibleConfigFile)) {
                 $configFile = $possibleConfigFile;
