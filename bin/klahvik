@@ -46,19 +46,22 @@ Bin::run('klahvik', static function (Application $app, ArgvInput $input) use ($k
     ));
 
     $configFile = null;
-    $possibleConfigFiles = [
-            Path::join(getcwd(), 'klahvik.yaml'),
-            Path::join(getcwd(), 'klahvik.yml'),
-            Path::join($_SERVER['HOME'], '.klahvik/klahvik.yaml'),
-            Path::join($_SERVER['HOME'], '.klahvik/klahvik.yml'),
-    ];
-    foreach ($possibleConfigFiles as $possibleConfigFile) {
-        if (file_exists($possibleConfigFile)) {
-            $configFile = $possibleConfigFile;
-        }
-    }
     if ($input->hasParameterOption(['--config'], true)) {
         $configFile = $input->getParameterOption('--config', null, true);
+    }
+    else {
+        $possibleConfigFiles = [
+                Path::join(getcwd(), 'klahvik.yaml'),
+                Path::join(getcwd(), 'klahvik.yml'),
+                Path::join($_SERVER['HOME'], '.klahvik/klahvik.yaml'),
+                Path::join($_SERVER['HOME'], '.klahvik/klahvik.yml'),
+        ];
+        foreach ($possibleConfigFiles as $possibleConfigFile) {
+            if (file_exists($possibleConfigFile)) {
+                $configFile = $possibleConfigFile;
+                break;
+            }
+        }
     }
 
     if (!$configFile) {
